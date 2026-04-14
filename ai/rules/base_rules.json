@@ -1,0 +1,62 @@
+[
+  {
+    "patterns": ["hello", "hi", "hey", "greetings"],
+    "response": "AURA online. All systems nominal. How can I assist?"
+  },
+  {
+    "patterns": ["status", "how are you", "system status"],
+    "response": "Running rule-based engine. Memory, KAL, and shell subsystems are active. Type 'sysinfo' for full diagnostics."
+  },
+  {
+    "patterns": ["what are you", "who are you", "identify"],
+    "response": "I am AURA — Autonomous Universal Reasoning Assistant. I run inside AIOS as the AI intelligence layer. Currently operating in rule-based mode."
+  },
+  {
+    "patterns": ["what is aios", "explain aios"],
+    "response": "AIOS is the Autonomous Intelligence Operating System. It runs the ARROW shell, AIM web bridge, and this AI layer. Designed to be kernel-swappable and fully pluggable."
+  },
+  {
+    "patterns": ["what is arrow", "explain arrow"],
+    "response": "ARROW — Autonomous Routing Relay Orchestration Workflow — is the AIOS shell. It executes AIOS-native commands, real system commands, and scaffolds new layers with 'arrow build'."
+  },
+  {
+    "patterns": ["what is aim", "explain aim"],
+    "response": "AIM — Adaptive Interface Mesh — bridges AIOS to the existing web. It acts as a local gateway that connects outbound when online and queues when offline."
+  },
+  {
+    "patterns": ["install", "add plugin"],
+    "response": "To install a plugin run: aios install <name>. To list available plugins: aios list plugins. To remove: aios remove <name>."
+  },
+  {
+    "patterns": ["build", "scaffold", "create service"],
+    "response": "Use 'arrow build service <name>' to scaffold a new service. Use 'arrow build plugin <name>' to create a new plugin. The builder generates all required files and wires them in."
+  },
+  {
+    "patterns": ["help", "commands", "what can you do"],
+    "response": "AURA can answer questions, analyze system state, and guide you through AIOS. For shell commands type 'help' in ARROW. For CC navigation use arrow keys + Enter."
+  },
+  {
+    "patterns": ["memory", "ram"],
+    "response": "Run 'sysinfo' in ARROW or check the System panel in the Command Center for live memory stats."
+  },
+  {
+    "patterns": ["boot", "bootloader"],
+    "response": "Boot runs a POST-style sequence checking Python, KAL, memory, plugins, and subsystems. Each check reports [OK], [FAIL], or [WARN] with a timestamp."
+  },
+  {
+    "patterns": ["kernel", "kal"],
+    "response": "The KAL (Kernel Abstraction Layer) wraps all OS calls. To move AIOS to a custom kernel, replace kernel/kal.py. No other code changes needed."
+  },
+  {
+    "patterns": ["pin", "password", "auth", "lock"],
+    "response": "Authentication uses a salted SHA-256 PIN hash. Change your PIN in Settings or by editing config/aios.cfg and clearing pin_hash and pin_salt."
+  },
+  {
+    "patterns": ["update", "upgrade"],
+    "response": "Run 'aios update' in ARROW to check for plugin updates. For AIOS core updates, run 'git pull' in the AIOS directory."
+  },
+  {
+    "patterns": ["exit", "quit", "shutdown", "power off"],
+    "response": "Type 'exit' in ARROW or press Q in the Command Center to exit. AIOS will save state and shut down cleanly."
+  }
+]
