@@ -17,6 +17,7 @@ GREEN  = "\033[1;32m"
 RED    = "\033[1;31m"
 YELLOW = "\033[1;33m"
 WHITE  = "\033[1;37m"
+GRAY   = "\033[0;37m"
 
 
 def cmd_arrow_build(args: list) -> int:

@@ -60,7 +60,7 @@ class ArrowCompleter:
     def _setup_readline(self):
         readline.set_completer(self.complete)
         readline.set_completer_delims(" \t\n;|&")
-        if "libedit" in readline.__doc__ or "":
+        if "libedit" in (readline.__doc__ or ""):
             # macOS libedit compatibility
             readline.parse_and_bind("bind ^I rl_complete")
         else:
