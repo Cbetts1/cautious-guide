@@ -1,0 +1,44 @@
+{
+  "available": [
+    {
+      "name": "webserver",
+      "version": "1.0.0",
+      "description": "Lightweight HTTP file server for AIOS",
+      "type": "service",
+      "bundled": true,
+      "requires": []
+    },
+    {
+      "name": "sshbridge",
+      "version": "1.0.0",
+      "description": "SSH tunnel bridge via AIM",
+      "type": "service",
+      "bundled": true,
+      "requires": ["openssh"]
+    },
+    {
+      "name": "filebrowser",
+      "version": "1.0.0",
+      "description": "Terminal-based file manager plugin",
+      "type": "tool",
+      "bundled": true,
+      "requires": []
+    },
+    {
+      "name": "monitor",
+      "version": "1.0.0",
+      "description": "System resource monitor service (autostarted)",
+      "type": "service",
+      "bundled": true,
+      "requires": []
+    },
+    {
+      "name": "codepad",
+      "version": "1.0.0",
+      "description": "Lightweight code editor plugin for ARROW shell",
+      "type": "tool",
+      "bundled": true,
+      "requires": []
+    }
+  ]
+}
