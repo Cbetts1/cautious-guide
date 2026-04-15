@@ -232,7 +232,8 @@ def _check_hub():
         return True
 
 
-    """Start services listed in config.services.autostart."""
+def _check_autostart():
+    """Load and start services listed in config.services.autostart."""
     try:
         from boot.service_loader import autostart_services
         started = autostart_services()
@@ -291,7 +292,7 @@ class Bootloader:
         _check_tool("git",    ["git",    "--version"])
         _check_tool("python3",["python3","--version"])
         _check_tool("curl",   ["curl",   "--version"])
-        _check_autostart()
+        self._run_check("autostart", _check_autostart, critical=False)
 
         # ── Boot Summary ──────────────────────────────────────────────
         _section("BOOT SUMMARY")

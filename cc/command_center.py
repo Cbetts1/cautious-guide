@@ -305,8 +305,6 @@ class CommandCenter:
         _safe_addstr(stdscr, 2, 0, div, curses.color_pair(CP_CYAN_BLK))
 
     def _draw_menu(self, stdscr, h: int, w: int):
-        content_h = h - HEADER_HEIGHT - STATUS_HEIGHT
-
         for i, (label, key) in enumerate(MENU_ITEMS):
             row = HEADER_HEIGHT + i
             if row >= h - STATUS_HEIGHT:
