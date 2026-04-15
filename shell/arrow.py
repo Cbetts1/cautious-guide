@@ -41,7 +41,7 @@ def _dispatch(cmd: str, args: list) -> tuple[bool, int]:
     Returns (handled, exit_code).
     """
     from shell.commands.aios_cmds import (
-        cmd_sysinfo, cmd_aios, cmd_aura, cmd_aim, cmd_services, cmd_help
+        cmd_sysinfo, cmd_aios, cmd_aura, cmd_aim, cmd_services, cmd_layers, cmd_help
     )
     from shell.commands.build_cmds import cmd_arrow_build
 
@@ -51,6 +51,7 @@ def _dispatch(cmd: str, args: list) -> tuple[bool, int]:
         "aura":     cmd_aura,
         "aim":      cmd_aim,
         "services": cmd_services,
+        "layers":   cmd_layers,
         "help":     cmd_help,
     }
 
