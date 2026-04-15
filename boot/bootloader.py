@@ -276,9 +276,6 @@ class Bootloader:
 
         # ── Phase 4: Plugins & Tools ──────────────────────────────────
         _section("PHASE 4 — PLUGINS & OPTIONAL TOOLS")
-
-        # ── Phase 4: Autostart services ───────────────────────────────
-        _section("PHASE 4 — PLUGINS & OPTIONAL TOOLS")
         self._run_check("plugins", _check_plugins, critical=False)
         _check_tool("git",    ["git",    "--version"])
         _check_tool("python3",["python3","--version"])

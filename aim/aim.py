@@ -17,6 +17,44 @@ from urllib.parse import urlencode
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# ── Private address ranges blocked for SSRF protection ───────────────────────
+_BLOCKED_PREFIXES = (
+    "127.", "10.", "0.", "169.254.", "192.168.",
+    "::1", "fc", "fd",
+)
+_BLOCKED_HOSTS = {"localhost", "local"}
+
+
+def _validate_external_url(url: str) -> str:
+    """
+    Return an error string if the URL should be blocked, or '' if it is safe.
+    Allows only http:// and https:// to non-private/loopback destinations.
+    """
+    from urllib.parse import urlparse as _urlparse
+    try:
+        parsed = _urlparse(url)
+    except Exception:
+        return "invalid URL"
+    if parsed.scheme not in ("http", "https"):
+        return f"unsupported scheme '{parsed.scheme}' — only http/https allowed"
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return "missing host"
+    if host in _BLOCKED_HOSTS:
+        return f"host '{host}' is not allowed"
+    for prefix in _BLOCKED_PREFIXES:
+        if host.startswith(prefix):
+            return f"host '{host}' resolves to a private/loopback address"
+    # Block 172.16.0.0/12 (Docker/private)
+    if host.startswith("172."):
+        try:
+            second = int(host.split(".")[1])
+            if 16 <= second <= 31:
+                return f"host '{host}' is in a private address range"
+        except (IndexError, ValueError):
+            pass
+    return ""
+
 
 def _check_internet(host: str = "8.8.8.8", port: int = 53, timeout: float = 3.0) -> bool:
     """Quick connectivity check via TCP socket."""
@@ -164,6 +202,12 @@ class AIM:
                         body = b'{"error": "missing url parameter"}'
                         self._respond(400, "application/json", body)
                         return
+                    # Validate URL to prevent SSRF: allow only http(s) to non-private hosts
+                    err_msg = _validate_external_url(url)
+                    if err_msg:
+                        body = json.dumps({"error": err_msg}).encode()
+                        self._respond(400, "application/json", body)
+                        return
                     result = aim_ref._do_get(url)
                     if result["ok"]:
                         body = result["body"].encode("utf-8", errors="replace")
@@ -236,6 +280,9 @@ class AIM:
         Perform a GET request. If offline, queue the request.
         Returns: {ok, status_code, body, error}
         """
+        err = _validate_external_url(url)
+        if err:
+            return {"ok": False, "status_code": 0, "body": "", "error": err}
         if not self._online:
             req = AIMRequest(url)
             with self._lock:
