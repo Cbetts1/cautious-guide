@@ -21,6 +21,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from utils.ansi import RESET, BOLD, CYAN, GREEN, RED, WHITE, BLUE, GRAY
+from version import __version__ as _VERSION
 
 # ── Built-in dispatcher ───────────────────────────────────────────────────────
 
