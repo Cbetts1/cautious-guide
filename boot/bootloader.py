@@ -221,7 +221,17 @@ def _check_data_dirs():
     return True
 
 
-def _check_autostart():
+def _check_hub():
+    try:
+        from hub.device_profile import get_profile
+        p = get_profile()
+        _line(TAG_OK, f"Studio Hub — device mode: {p.mode} (refresh {p.refresh_sec}s)")
+        return True
+    except Exception as e:
+        _line(TAG_WARN, f"Studio Hub init deferred: {e}")
+        return True
+
+
     """Start services listed in config.services.autostart."""
     try:
         from boot.service_loader import autostart_services
@@ -269,6 +279,7 @@ class Bootloader:
 
         # ── Phase 3: Subsystems ───────────────────────────────────────
         _section("PHASE 3 — SUBSYSTEMS")
+        self._run_check("hub",   _check_hub,   critical=False)
         self._run_check("aura",  _check_aura,  critical=False)
         self._run_check("aim",   _check_aim,   critical=False)
         self._run_check("arrow", _check_arrow, critical=False)
@@ -298,6 +309,13 @@ class Bootloader:
                     bus.emit("boot", LEVEL_WARN, f"Warning: {w}")
             if not self.failures:
                 bus.emit("boot", LEVEL_OK, "Boot complete — all critical checks passed")
+        except Exception:
+            pass
+
+        # Initialize hub state so last_panel persists across sessions
+        try:
+            from hub.hub_state import get_hub_state
+            get_hub_state()   # triggers load from disk
         except Exception:
             pass
 
