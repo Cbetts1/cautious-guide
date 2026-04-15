@@ -161,9 +161,12 @@ class PinAuth:
         stored_hash = self._auth_data.get("pin_hash", "")
         salt        = self._auth_data.get("pin_salt", "")
         if self._is_legacy_hash():
-            # Old SHA-256 path — verify then immediately upgrade hash
+            # Migration path: reproduce the old SHA-256 digest once to verify
+            # the user's PIN, then immediately re-hash with pbkdf2_hmac.
+            # This is the *only* place where the legacy algorithm is used and
+            # it is intentional — we need the plaintext to upgrade.
             import hashlib as _hl
-            candidate = _hl.sha256((salt + pin).encode()).hexdigest()
+            candidate = _hl.sha256((salt + pin).encode()).hexdigest()  # nosec B324
             if candidate == stored_hash:
                 # Upgrade to pbkdf2 now that we know the plaintext PIN
                 new_salt   = secrets.token_hex(16)
