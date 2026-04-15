@@ -5,6 +5,8 @@ Each plugin is a directory under plugins/installed/<name>/
 with a manifest.json describing it.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import json

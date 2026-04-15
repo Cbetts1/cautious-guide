@@ -10,6 +10,8 @@ Full interactive shell supporting:
   - arrow build system
 """
 
+from __future__ import annotations
+
 import os
 import sys
 import subprocess
@@ -21,7 +23,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from utils.ansi import RESET, BOLD, CYAN, GREEN, RED, WHITE, BLUE, GRAY
-from version import __version__ as _VERSION
+from version import __version__ as _VERSION  # noqa: E402
 
 # ── Built-in dispatcher ───────────────────────────────────────────────────────
 

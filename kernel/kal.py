@@ -179,9 +179,8 @@ class KAL:
 
 
 # Singleton
-_kal_lock     = __import__("threading").Lock()
+_kal_lock     = threading.Lock()
 _kal_instance = None
-_kal_lock = threading.Lock()
 
 
 def get_kal() -> KAL:

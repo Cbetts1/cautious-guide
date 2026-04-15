@@ -20,7 +20,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from version import __version__ as _VERSION  # noqa: F401 E402
+from version import __version__ as _VERSION  # noqa: F401,E402
 
 # ── Private address ranges blocked for SSRF protection ───────────────────────
 _BLOCKED_HOSTS = {"localhost", "local"}

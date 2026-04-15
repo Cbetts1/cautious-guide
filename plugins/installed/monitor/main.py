@@ -20,8 +20,7 @@ if ROOT not in sys.path:
 PLUGIN_NAME    = "monitor"
 PLUGIN_VERSION = "1.0.0"
 LOG_PATH       = os.path.expanduser("~/.aios/monitor.log")
-LOG_MAX_BYTES  = 10 * 1024 * 1024   # 10 MB — rotate when exceeded
-MAX_LOG_BYTES  = LOG_MAX_BYTES       # alias used by tests and external callers
+MAX_LOG_BYTES  = 10 * 1024 * 1024   # 10 MB — rotate when exceeded
 INTERVAL       = 5   # seconds between samples
 
 _running   = False
@@ -31,39 +30,27 @@ _log_fh    = None
 
 
 def _rotate_log():
-    """Rotate monitor.log → monitor.log.1 by file path when it exceeds MAX_LOG_BYTES.
-
-    Works without an open file handle; safe to call anytime.
-    """
-    try:
-        if not os.path.isfile(LOG_PATH):
-            return
-        if os.path.getsize(LOG_PATH) < MAX_LOG_BYTES:
-            return
-        rotated = LOG_PATH + ".1"
-        if os.path.isfile(rotated):
-            os.remove(rotated)
-        os.rename(LOG_PATH, rotated)
-    except Exception:
-        pass
-
-
-def _rotate_if_needed():
-    """Rotate monitor.log → monitor.log.1 when it exceeds LOG_MAX_BYTES."""
+    """Rotate monitor.log → monitor.log.1 when it exceeds MAX_LOG_BYTES."""
     global _log_fh
     try:
-        if _log_fh is None:
+        had_handle = _log_fh is not None
+        if had_handle:
+            size = os.fstat(_log_fh.fileno()).st_size
+        elif os.path.isfile(LOG_PATH):
+            size = os.path.getsize(LOG_PATH)
+        else:
             return
-        size = os.fstat(_log_fh.fileno()).st_size
-        if size < LOG_MAX_BYTES:
+        if size < MAX_LOG_BYTES:
             return
-        _log_fh.close()
-        _log_fh = None
+        if had_handle:
+            _log_fh.close()
+            _log_fh = None
         rotated = LOG_PATH + ".1"
         if os.path.isfile(rotated):
             os.remove(rotated)
         os.rename(LOG_PATH, rotated)
-        _log_fh = open(LOG_PATH, "a", buffering=1)
+        if had_handle:
+            _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         pass
 
@@ -95,7 +82,7 @@ def _monitor_loop():
     global _running, _log_fh
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     try:
-        _rotate_if_needed()
+        _rotate_log()
         _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         _log_fh = None
@@ -112,11 +99,11 @@ def _monitor_loop():
         if _log_fh:
             try:
                 _log_fh.write(line + "\n")
-                _rotate_if_needed()
+                _rotate_log()
             except Exception:
                 pass
         # Rotate after writing in case the write pushed us over the limit
-        _rotate_if_needed()
+        _rotate_log()
         time.sleep(INTERVAL)
 
     if _log_fh:
