@@ -19,6 +19,7 @@ class RepairPanel:
         ("Plugin dir",       "_chk_plugins"),
         ("EventBus",         "_chk_events"),
         ("Hub modules",      "_chk_hub"),
+        ("Service loader",   "_chk_service_loader"),
         ("Project registry", "_chk_projects"),
         ("Comms layer",      "_chk_comms"),
         ("Remote layer",     "_chk_remote"),
@@ -120,6 +121,15 @@ class RepairPanel:
             from hub.hub_state import get_hub_state
             p = get_profile()
             return True, f"Hub OK  mode={p.mode}"
+        except Exception as e:
+            return False, str(e)
+
+    def _chk_service_loader(self):
+        try:
+            # Only verify the module is importable; calling autostart_services()
+            # would start actual background threads as a side effect.
+            from boot.service_loader import autostart_services  # noqa: F401
+            return True, "service_loader importable"
         except Exception as e:
             return False, str(e)
 
