@@ -21,12 +21,31 @@ PLUGIN_NAME    = "monitor"
 PLUGIN_VERSION = "1.0.0"
 LOG_PATH       = os.path.expanduser("~/.aios/monitor.log")
 LOG_MAX_BYTES  = 10 * 1024 * 1024   # 10 MB — rotate when exceeded
+MAX_LOG_BYTES  = LOG_MAX_BYTES       # alias used by tests and external callers
 INTERVAL       = 5   # seconds between samples
 
 _running   = False
 _thread    = None
 _lock      = threading.Lock()
 _log_fh    = None
+
+
+def _rotate_log():
+    """Rotate monitor.log → monitor.log.1 by file path when it exceeds MAX_LOG_BYTES.
+
+    Works without an open file handle; safe to call anytime.
+    """
+    try:
+        if not os.path.isfile(LOG_PATH):
+            return
+        if os.path.getsize(LOG_PATH) < MAX_LOG_BYTES:
+            return
+        rotated = LOG_PATH + ".1"
+        if os.path.isfile(rotated):
+            os.remove(rotated)
+        os.rename(LOG_PATH, rotated)
+    except Exception:
+        pass
 
 
 def _rotate_if_needed():
@@ -76,7 +95,7 @@ def _monitor_loop():
     global _running, _log_fh
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     try:
-        _rotate_log()
+        _rotate_if_needed()
         _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         _log_fh = None
@@ -97,7 +116,7 @@ def _monitor_loop():
             except Exception:
                 pass
         # Rotate after writing in case the write pushed us over the limit
-        _rotate_log()
+        _rotate_if_needed()
         time.sleep(INTERVAL)
 
     if _log_fh:

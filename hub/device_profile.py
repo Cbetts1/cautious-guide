@@ -145,9 +145,10 @@ class DeviceProfile:
         )
 
 
-_profile_lock: __import__("threading").Lock = __import__("threading").Lock()
+import threading as _threading
+
+_profile_lock: _threading.Lock = _threading.Lock()
 _profile: DeviceProfile = None
-_profile_lock = threading.Lock()
 
 
 def get_profile() -> DeviceProfile:

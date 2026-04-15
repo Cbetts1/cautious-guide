@@ -7,7 +7,6 @@ Run with:  python -m pytest tests/ -v
 import os
 import sys
 import unittest
-import importlib
 
 # Ensure the repo root is on sys.path so all AIOS modules can be imported.
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -249,8 +248,6 @@ class TestColors(unittest.TestCase):
 class TestMonitorRotation(unittest.TestCase):
     def test_rotation_creates_backup(self):
         import tempfile
-        import importlib
-        import sys
 
         # Temporarily patch LOG_PATH to a temp file
         with tempfile.TemporaryDirectory() as tmpdir:
