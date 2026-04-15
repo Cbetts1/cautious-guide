@@ -225,6 +225,91 @@ def cmd_aim(args: list) -> int:
         return 0
 
 
+def cmd_layers(args: list) -> int:
+    """layers — Show all AIOS system layers and their current status."""
+    from kernel.kal import get_kal
+    kal = get_kal()
+
+    print(f"\n  {CYAN}{'─' * 58}{RESET}")
+    print(f"  {BOLD}{WHITE}◈ AIOS SYSTEM LAYERS{RESET}")
+    print(f"  {CYAN}{'─' * 58}{RESET}")
+
+    # KAL
+    print(f"\n  {BOLD}KAL{RESET}  Kernel Abstraction Layer")
+    try:
+        mem = kal.get_memory()
+        cpu = kal.get_cpu_percent()
+        up  = kal.get_uptime_str()
+        pi  = kal.get_platform_info()
+        health = "NOMINAL"
+        hc = GREEN
+        if mem["percent"] > 90 or cpu > 90:
+            health = "STRESSED"
+            hc = YELLOW
+        print(f"  {GREEN}●{RESET} Status  : {GREEN}ACTIVE{RESET}   Health: {hc}{health}{RESET}")
+        print(f"    Version : v1.0.0")
+        print(f"    Uptime  : {up}")
+        print(f"    Platform: {pi['system']} {pi['machine']}")
+        print(f"    Memory  : {mem['used_mb']}MB / {mem['total_mb']}MB ({mem['percent']:.0f}%)")
+        print(f"    CPU     : {cpu:.1f}%")
+    except Exception as e:
+        print(f"  {RED}● Status  : ERROR — {e}{RESET}")
+
+    # AIM
+    print(f"\n  {BOLD}AIM{RESET}  Adaptive Interface Mesh")
+    try:
+        from aim.aim import get_aim
+        st = get_aim().get_status()
+        online = st["online"]
+        dot_c  = GREEN if online else YELLOW
+        lbl    = "ONLINE" if online else "OFFLINE"
+        print(f"  {dot_c}●{RESET} Status  : {dot_c}{lbl}{RESET}   Queued: {st['queued']}")
+        print(f"    Version : v{st['version']}")
+        print(f"    Enabled : {'Yes' if st['enabled'] else 'No'}")
+        print(f"    Actions : aim check · aim fetch <url> · aim status")
+    except Exception as e:
+        print(f"  {RED}● Status  : ERROR — {e}{RESET}")
+
+    # AURA
+    print(f"\n  {BOLD}AURA{RESET} Autonomous Universal Reasoning Assistant")
+    try:
+        from ai.aura import get_aura
+        st = get_aura().get_status()
+        print(f"  {GREEN}●{RESET} Status  : {GREEN}ACTIVE{RESET}   Mode: {CYAN}{st['mode'].upper()}{RESET}")
+        print(f"    Version : v{st['version']}")
+        print(f"    Rules   : {st['rules']} loaded")
+        print(f"    Context : {st['ctx_items']} item(s)")
+        print(f"    Actions : aura <question>")
+    except Exception as e:
+        print(f"  {YELLOW}●{RESET} Status  : {YELLOW}INIT DEFERRED — {e}{RESET}")
+
+    # ARROW
+    print(f"\n  {BOLD}ARROW{RESET} Autonomous Routing Relay Orchestration Workflow")
+    print(f"  {GREEN}●{RESET} Status  : {GREEN}READY{RESET}   Version: v1.0.0")
+    print(f"    Role    : Command execution, routing, build system")
+    print(f"    Access  : You are in ARROW now — type 'cc' to return to CC")
+
+    # Plugins
+    import os
+    ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    plug_dir = os.path.join(ROOT_DIR, "plugins", "installed")
+    plug_names = []
+    try:
+        plug_names = [d for d in os.listdir(plug_dir)
+                      if os.path.isdir(os.path.join(plug_dir, d))]
+    except Exception:
+        pass
+    print(f"\n  {BOLD}PLUGINS{RESET} Optional Extensions ({len(plug_names)} installed)")
+    if plug_names:
+        for p in plug_names:
+            print(f"    {GREEN}◈{RESET} {p}")
+    else:
+        print(f"    {GRAY}None installed. Use: aios install <name>{RESET}")
+
+    print(f"\n  {CYAN}{'─' * 58}{RESET}\n")
+    return 0
+
+
 def cmd_services(args: list) -> int:
     """services — List running AIOS services."""
     from kernel.kal import get_kal
@@ -254,6 +339,7 @@ def cmd_help(args: list) -> int:
 
   {BOLD}BUILT-IN COMMANDS{RESET}
   {WHITE}sysinfo{RESET}                      System status and resource usage
+  {WHITE}layers{RESET}                       Show all AIOS layers + health status
   {WHITE}aios <sub> [args]{RESET}            AIOS management (install/remove/list...)
   {WHITE}aura <query>{RESET}                 Ask AURA AI
   {WHITE}aim  <sub>{RESET}                   AIM web bridge (status/check/fetch)
@@ -269,6 +355,7 @@ def cmd_help(args: list) -> int:
   {BOLD}SYSTEM COMMANDS{RESET}
   All standard Linux/Termux commands pass through to the system.
   Pipes (|), redirects (>, >>), and background (&) are supported.
+  Root commands work unchanged — no blocking or filtering.
 
   {BOLD}HISTORY & COMPLETION{RESET}
   ↑/↓ arrow keys — command history

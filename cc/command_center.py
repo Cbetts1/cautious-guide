@@ -38,11 +38,14 @@ MIN_WIDTH     = 80
 MIN_HEIGHT    = 22
 
 MENU_ITEMS = [
+    ("◈ Home",       "home"),
     ("System",       "system"),
+    ("Layers",       "layers"),
     ("ARROW Shell",  "arrow"),
     ("Services",     "services"),
     ("AI / AURA",    "aura"),
     ("Network/AIM",  "network"),
+    ("Events",       "events"),
     ("Storage",      "storage"),
     ("Builder",      "builder"),
     ("Settings",     "settings"),
@@ -99,6 +102,7 @@ class StatsCache:
         self.svc_total   = 0
         self.online      = False
         self._lock       = threading.Lock()
+        self._prev_online = None   # track transitions for event emission
 
     def update(self, kal):
         try:
@@ -115,7 +119,19 @@ class StatsCache:
             pass
         try:
             from aim.aim import get_aim
-            self.online = get_aim().is_online()
+            now_online  = get_aim().is_online()
+            self.online = now_online
+            # Emit event on online/offline state transition
+            if self._prev_online is not None and self._prev_online != now_online:
+                try:
+                    from cc.events import get_event_bus, LEVEL_OK, LEVEL_WARN
+                    if now_online:
+                        get_event_bus().emit("AIM", LEVEL_OK, "Network: connection restored — ONLINE")
+                    else:
+                        get_event_bus().emit("AIM", LEVEL_WARN, "Network: connection lost — OFFLINE")
+                except Exception:
+                    pass
+            self._prev_online = now_online
         except Exception:
             pass
 
@@ -130,11 +146,19 @@ class CommandCenter:
         self._stats      = StatsCache()
         self._running    = True
         self._panels     = self._load_panels()
+        # Emit startup event
+        try:
+            from cc.events import get_event_bus, LEVEL_OK
+            get_event_bus().emit("CC", LEVEL_OK, "AIOS Command Center started — all systems go")
+        except Exception:
+            pass
 
     def _load_panels(self) -> dict:
         panels = {}
         try:
+            from cc.panels.home_panel     import HomePanel
             from cc.panels.system_panel   import SystemPanel
+            from cc.panels.layers_panel   import LayersPanel
             from cc.panels.services_panel import ServicesPanel
             from cc.panels.aura_panel     import AuraPanel
             from cc.panels.network_panel  import NetworkPanel
@@ -142,9 +166,12 @@ class CommandCenter:
             from cc.panels.builder_panel  import BuilderPanel
             from cc.panels.settings_panel import SettingsPanel
             from cc.panels.help_panel     import HelpPanel
+            from cc.panels.events_panel   import EventsPanel
 
             panels = {
+                "home":     HomePanel(),
                 "system":   SystemPanel(),
+                "layers":   LayersPanel(),
                 "services": ServicesPanel(),
                 "aura":     AuraPanel(),
                 "network":  NetworkPanel(),
@@ -152,8 +179,9 @@ class CommandCenter:
                 "builder":  BuilderPanel(),
                 "settings": SettingsPanel(),
                 "help":     HelpPanel(),
+                "events":   EventsPanel(),
             }
-        except Exception as e:
+        except Exception:
             pass
         return panels
 
@@ -223,14 +251,13 @@ class CommandCenter:
         title  = " ◈  AIOS  AUTONOMOUS INTELLIGENCE OPERATING SYSTEM"
         ver    = "v1.0.0 "
         filler = " " * max(0, w - len(title) - len(ver) - 2)
-        line   = "║" + title + filler + ver + "║"
         _safe_addstr(stdscr, 1, 0, "║",  curses.color_pair(CP_CYAN_BLK))
         _safe_addstr(stdscr, 1, 1, title, curses.color_pair(CP_WHITE_BLK) | curses.A_BOLD)
         _safe_addstr(stdscr, 1, 1 + len(title) + len(filler),
                      ver, curses.color_pair(CP_CYAN_BLK))
         _safe_addstr(stdscr, 1, w - 1, "║", curses.color_pair(CP_CYAN_BLK))
 
-        # Divider
+        # Divider with column separator
         div = "╠" + "═" * (MENU_WIDTH - 1) + "╦" + "═" * (w - MENU_WIDTH - 2) + "╣"
         _safe_addstr(stdscr, 2, 0, div, curses.color_pair(CP_CYAN_BLK))
 
@@ -327,8 +354,19 @@ class CommandCenter:
         health_str = "● HEALTHY"
         health_color = curses.color_pair(CP_GREEN_BLK)
         if s.mem_pct > 90 or s.cpu_pct > 90:
-            health_str  = "● STRESSED"
+            health_str  = "● CRITICAL"
             health_color = curses.color_pair(CP_RED_BLK)
+        elif s.mem_pct > 70 or s.cpu_pct > 70:
+            health_str  = "◑ STRESSED"
+            health_color = curses.color_pair(CP_YELLOW_BLK)
+
+        # Event count badge
+        try:
+            from cc.events import get_event_bus
+            ev_count = get_event_bus().count()
+            ev_str = f"EVT:{ev_count}"
+        except Exception:
+            ev_str = ""
 
         bar_row = h - 1
         col = 1
@@ -349,6 +387,9 @@ class CommandCenter:
         write(net_str, net_color)
         write("  │  ", curses.color_pair(CP_WHITE_BLK))
         write(ts, curses.color_pair(CP_CYAN_BLK))
+        if ev_str:
+            write("  │  ", curses.color_pair(CP_WHITE_BLK))
+            write(ev_str, curses.color_pair(CP_CYAN_BLK))
         write("  │  ", curses.color_pair(CP_WHITE_BLK))
         write(health_str, health_color)
         write("  │  Q:quit", curses.color_pair(CP_WHITE_BLK) | curses.A_DIM)
@@ -359,13 +400,6 @@ class CommandCenter:
         # Bottom border
         bot = "╚" + "═" * (w - 2) + "╝"
         _safe_addstr(stdscr, h - 1, 0, bot, curses.color_pair(CP_CYAN_BLK))
-
-        # Oops — bottom border replaces status bar row; fix: status is on h-1, border below
-        # Actually layout: status_row = h-2, border = h-1
-        # Let me recalculate: header=3, status=2, content fills between
-        # status divider at h-2, status content at h-1 — border wraps the whole thing
-        # The ╚╝ row needs to be OUTSIDE the terminal — so we draw it at h-1 then
-        # status is one row above. Let me draw the bottom border differently.
 
     # ── Key handling ──────────────────────────────────────────────────────────
 
@@ -402,6 +436,11 @@ class CommandCenter:
 
     def _launch_arrow(self, stdscr):
         """Suspend curses, launch ARROW shell, resume curses."""
+        try:
+            from cc.events import get_event_bus, LEVEL_INFO
+            get_event_bus().emit("CC", LEVEL_INFO, "Launched ARROW shell")
+        except Exception:
+            pass
         curses.endwin()
         try:
             from shell.arrow import Arrow
@@ -411,6 +450,12 @@ class CommandCenter:
             print(f"\n\033[1;31mARROW launch error: {e}\033[0m")
             input("Press Enter to return to Command Center...")
         finally:
+            # Emit return event
+            try:
+                from cc.events import get_event_bus, LEVEL_INFO
+                get_event_bus().emit("CC", LEVEL_INFO, "Returned to Command Center from ARROW")
+            except Exception:
+                pass
             # Reinitialize curses
             stdscr.refresh()
             curses.doupdate()
