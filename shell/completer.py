@@ -19,18 +19,24 @@ BUILTIN_COMMANDS = [
     "aios list available",
     "aios enable",
     "aios disable",
+    "aios run",
+    "aios stop",
     "aios status",
     "aios update",
+    "aios version",
     "aura",
     "aim",
     "aim status",
     "aim check",
     "aim fetch",
+    "aim serve",
+    "aim stop",
     "services",
     "arrow",
     "arrow build service",
     "arrow build plugin",
     "arrow build layer",
+    "arrow run",
     "cc",
     "clear",
     "exit",
@@ -86,20 +92,28 @@ class ArrowCompleter:
 
         # aios subcommand
         if cmd == "aios":
-            subs = ["install", "remove", "list", "enable", "disable", "status", "update"]
+            subs = ["install", "remove", "list", "enable", "disable",
+                    "run", "stop", "status", "update", "version"]
             if len(tokens) == 1 or (len(tokens) == 2 and not buf.endswith(" ")):
                 return [s + " " for s in subs if s.startswith(text)]
-            # aios install/remove/enable/disable <plugin>
-            if len(tokens) >= 2 and tokens[1] in ("install", "remove", "enable", "disable"):
+            # aios install/remove/enable/disable/run/stop <plugin>
+            if len(tokens) >= 2 and tokens[1] in (
+                    "install", "remove", "enable", "disable", "run", "stop"):
                 names = _get_plugin_names()
                 return [n + " " for n in names if n.startswith(text)]
 
-        # arrow build subcommand
+        # arrow build/run subcommand
         if cmd == "arrow":
+            if len(tokens) == 1 or (len(tokens) == 2 and not buf.endswith(" ")):
+                return [s + " " for s in ["build", "run"] if s.startswith(text)]
             if len(tokens) >= 2 and tokens[1] == "build":
                 types = ["service", "plugin", "layer"]
                 if len(tokens) == 2 or (len(tokens) == 3 and not buf.endswith(" ")):
                     return [t + " " for t in types if t.startswith(text)]
+            if len(tokens) >= 2 and tokens[1] == "run":
+                names = _get_plugin_names()
+                if len(tokens) == 2 or (len(tokens) == 3 and not buf.endswith(" ")):
+                    return [n + " " for n in names if n.startswith(text)]
 
         # Fall back to filesystem completion
         return self._path_complete(text)

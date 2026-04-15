@@ -47,6 +47,7 @@ MENU_ITEMS = [
     ("Builder",      "builder"),
     ("Settings",     "settings"),
     ("Help",         "help"),
+    ("Events",       "events"),
 ]
 
 
@@ -142,6 +143,7 @@ class CommandCenter:
             from cc.panels.builder_panel  import BuilderPanel
             from cc.panels.settings_panel import SettingsPanel
             from cc.panels.help_panel     import HelpPanel
+            from cc.panels.events_panel   import EventsPanel
 
             panels = {
                 "system":   SystemPanel(),
@@ -152,6 +154,7 @@ class CommandCenter:
                 "builder":  BuilderPanel(),
                 "settings": SettingsPanel(),
                 "help":     HelpPanel(),
+                "events":   EventsPanel(),
             }
         except Exception as e:
             pass
@@ -356,16 +359,11 @@ class CommandCenter:
         _safe_addstr(stdscr, bar_row, w - 1, "║", curses.color_pair(CP_CYAN_BLK))
 
     def _draw_borders(self, stdscr, h: int, w: int):
-        # Bottom border
-        bot = "╚" + "═" * (w - 2) + "╝"
-        _safe_addstr(stdscr, h - 1, 0, bot, curses.color_pair(CP_CYAN_BLK))
-
-        # Oops — bottom border replaces status bar row; fix: status is on h-1, border below
-        # Actually layout: status_row = h-2, border = h-1
-        # Let me recalculate: header=3, status=2, content fills between
-        # status divider at h-2, status content at h-1 — border wraps the whole thing
-        # The ╚╝ row needs to be OUTSIDE the terminal — so we draw it at h-1 then
-        # status is one row above. Let me draw the bottom border differently.
+        # Layout: header=3 rows (0-2), content rows (3..h-3), status divider h-2, status h-1
+        # The outer ╚╝ border is drawn as the bottom of the status divider line,
+        # so we do NOT draw a separate bottom border row — the ╠═╣ divider and ║ col
+        # borders already close the box. Nothing extra needed here.
+        pass
 
     # ── Key handling ──────────────────────────────────────────────────────────
 
@@ -383,15 +381,17 @@ class CommandCenter:
             _, panel_key = MENU_ITEMS[self.selected]
             if panel_key == "arrow":
                 self._launch_arrow(stdscr)
-            elif panel_key == "aura":
-                # Forward key events to AURA panel when active
-                pass  # handled in main loop for active panel
 
         elif key in (ord("1"), ord("2"), ord("3"), ord("4"),
                      ord("5"), ord("6"), ord("7"), ord("8"), ord("9")):
             idx = key - ord("1")
             if idx < len(MENU_ITEMS):
                 self.selected = idx
+
+        elif key == ord("0"):
+            # Key 0 → item 10 (Events)
+            if len(MENU_ITEMS) >= 10:
+                self.selected = 9
 
         else:
             # Forward to active panel if it accepts key input

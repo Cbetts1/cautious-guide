@@ -1,0 +1,11 @@
+{
+  "name": "webserver",
+  "version": "1.0.0",
+  "description": "Lightweight HTTP file server for AIOS",
+  "type": "service",
+  "entry": "main.py",
+  "commands": ["start", "stop", "status", "help"],
+  "requires": [],
+  "installed_at": "2026-04-15 00:00:00",
+  "enabled": true
+}

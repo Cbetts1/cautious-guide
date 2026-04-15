@@ -1,0 +1,11 @@
+{
+  "name": "sshbridge",
+  "version": "1.0.0",
+  "description": "SSH tunnel bridge via AIM",
+  "type": "service",
+  "entry": "main.py",
+  "commands": ["start", "stop", "status", "config", "help"],
+  "requires": ["openssh"],
+  "installed_at": "2026-04-15 00:00:00",
+  "enabled": true
+}

@@ -1,11 +1,15 @@
-"""CC Panel: Storage."""
+"""CC Panel: Storage — disk usage, AIOS dirs, pycache cleanup."""
 import os
+import shutil
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class StoragePanel:
     TITLE = "STORAGE"
+
+    def __init__(self):
+        self._msg = ""
 
     def render(self, win, y: int, x: int, height: int, width: int,
                kal=None, curses_mod=None):
@@ -34,6 +38,7 @@ class StoragePanel:
             ]
 
             addline("  DISK USAGE", c.color_pair(3) | c.A_BOLD)
+            addline("  [C] Clean __pycache__  |  " + (self._msg or "Press C to free cache bytes"))
             addline("")
 
             seen = set()
@@ -42,7 +47,6 @@ class StoragePanel:
                     continue
                 try:
                     st = os.statvfs(path)
-                    dev = (st.f_fsid if hasattr(st, 'f_fsid') else path)
                     key = (st.f_blocks, st.f_frsize)
                     if key in seen:
                         continue
@@ -59,24 +63,78 @@ class StoragePanel:
                 except Exception:
                     pass
 
-            # AIOS directory sizes
+            # AIOS directory sizes with file counts
             addline("  AIOS DIRECTORIES", c.color_pair(3) | c.A_BOLD)
-            subdirs = ["plugins/installed", "config", "ai/rules"]
-            for sd in subdirs:
-                full = os.path.join(ROOT, sd)
+            aios_dirs = [
+                ("plugins/installed", "Installed plugins"),
+                ("config",            "Configuration"),
+                ("ai/rules",          "AI rules"),
+                ("services",          "Built services"),
+            ]
+            for rel, label in aios_dirs:
+                full = os.path.join(ROOT, rel)
                 if os.path.isdir(full):
                     try:
-                        total = sum(
-                            os.path.getsize(os.path.join(dp, f))
-                            for dp, _, files in os.walk(full)
-                            for f in files
-                        )
-                        addline(f"  {sd:<28} {total // 1024}KB")
+                        total_bytes = 0
+                        file_count  = 0
+                        for dp, _, files in os.walk(full):
+                            for fn in files:
+                                try:
+                                    total_bytes += os.path.getsize(os.path.join(dp, fn))
+                                    file_count  += 1
+                                except OSError:
+                                    pass
+                        addline(f"  {rel:<28} {total_bytes // 1024:>6}KB  ({file_count} files)")
                     except Exception:
                         pass
+
+            # ~/.aios data directory
+            aios_home = os.path.expanduser("~/.aios")
+            if os.path.isdir(aios_home):
+                try:
+                    total_bytes = sum(
+                        os.path.getsize(os.path.join(dp, fn))
+                        for dp, _, files in os.walk(aios_home)
+                        for fn in files
+                    )
+                    addline(f"  {'~/.aios':<28} {total_bytes // 1024:>6}KB")
+                except Exception:
+                    pass
 
         except Exception as e:
             try:
                 win.addnstr(y, x, f"  Error: {e}", width - 1)
             except Exception:
                 pass
+
+    def handle_key(self, key, curses_mod=None):
+        if key in (ord("c"), ord("C")):
+            freed = _clean_pycache(ROOT)
+            self._msg = f"Cleaned {freed // 1024}KB of __pycache__"
+            try:
+                from cc.events import get_event_bus, LEVEL_OK
+                get_event_bus().emit("storage", LEVEL_OK,
+                                     f"Cleaned __pycache__: freed {freed // 1024}KB")
+            except Exception:
+                pass
+
+
+def _clean_pycache(root: str) -> int:
+    """Remove all __pycache__ dirs under root. Returns bytes freed."""
+    freed = 0
+    for dirpath, dirnames, _ in os.walk(root):
+        for dn in list(dirnames):
+            if dn == "__pycache__":
+                full = os.path.join(dirpath, dn)
+                try:
+                    size = sum(
+                        os.path.getsize(os.path.join(dp, fn))
+                        for dp, _, files in os.walk(full)
+                        for fn in files
+                    )
+                    shutil.rmtree(full, ignore_errors=True)
+                    freed += size
+                    dirnames.remove(dn)
+                except Exception:
+                    pass
+    return freed
