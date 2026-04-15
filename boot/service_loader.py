@@ -6,7 +6,6 @@ with the KAL ProcessRegistry.
 """
 
 import os
-import sys
 import json
 import threading
 

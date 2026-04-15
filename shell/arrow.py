@@ -15,14 +15,12 @@ import sys
 import subprocess
 import shlex
 import signal
-import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from utils.colors import RESET, BOLD, CYAN, GREEN, RED, YELLOW, WHITE, BLUE, GRAY, DIM  # noqa: E402
-from version import __version__ as _VERSION  # noqa: E402
+from utils.ansi import RESET, BOLD, CYAN, GREEN, RED, WHITE, BLUE, GRAY
 
 # ── Built-in dispatcher ───────────────────────────────────────────────────────
 

@@ -87,14 +87,12 @@ class RepairPanel:
 
     def _chk_aim(self):
         try:
-            from aim.aim import AIM
             return True, "AIM importable"
         except Exception as e:
             return None, f"Deferred: {e}"
 
     def _chk_arrow(self):
         try:
-            from shell.arrow import Arrow
             return True, "ARROW importable"
         except Exception as e:
             return False, str(e)
@@ -118,7 +116,6 @@ class RepairPanel:
     def _chk_hub(self):
         try:
             from hub.device_profile import get_profile
-            from hub.hub_state import get_hub_state
             p = get_profile()
             return True, f"Hub OK  mode={p.mode}"
         except Exception as e:

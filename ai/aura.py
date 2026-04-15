@@ -96,20 +96,11 @@ class Aura:
             return resp
 
         if self.mode == "llm":
-            if self._llm is None:
-                # LLM mode requested but no model is loaded — warn and fall back.
-                warn = ("AURA is set to LLM mode but no model is loaded. "
-                        "Set 'aura.model_path' in config/aios.cfg and restart, "
-                        "or call aura.load_llm(path) to load a GGUF model. "
-                        "Falling back to rule-based mode.")
-                try:
-                    from cc.events import get_event_bus, LEVEL_WARN
-                    get_event_bus().emit("AURA", LEVEL_WARN, warn)
-                except Exception:
-                    pass
-                resp = self._rule_match(text) or self._fallback(text)
-            else:
-                resp = self._llm_query(text)
+            # LLM mode is NOT YET FULLY IMPLEMENTED.
+            # load_llm() must be called with a valid llama-cpp-python model
+            # path before this branch can produce real LLM responses.
+            # Until then it falls back to the rule-based engine.
+            resp = self._llm_query(text)
             self._add_context("aura", resp)
             return resp
 
@@ -129,8 +120,22 @@ class Aura:
                 "Try 'help' or ask about specific AIOS components.")
 
     def _llm_query(self, text: str) -> str:
-        # Future: integrate llama-cpp-python or Ollama REST API
-        # For now, fall back to rules
+        """
+        LLM query stub — NOT YET FULLY IMPLEMENTED.
+
+        To enable real LLM responses:
+          1. Install llama-cpp-python: pip install llama-cpp-python
+          2. Call aura.load_llm("/path/to/model.gguf") at startup.
+
+        Until a model is loaded this falls back to the rule-based engine.
+        """
+        if self._llm is not None:
+            try:
+                result = self._llm(text, max_tokens=256)
+                return result["choices"][0]["text"].strip()
+            except Exception:
+                pass
+        # Fallback to rules when no model is loaded
         response = self._rule_match(text)
         return response or self._fallback(text)
 
@@ -179,21 +184,22 @@ class Aura:
 
 
 # Singleton
+_aura_lock     = __import__("threading").Lock()
 _aura_instance = None
 _aura_lock = threading.Lock()
 
 
-def get_aura() -> Aura:
+def get_aura() -> "Aura":
     global _aura_instance
-    with _aura_lock:
-        if _aura_instance is None:
-            try:
-                cfg_path = os.path.join(ROOT, "config", "aios.cfg")
-                with open(cfg_path) as f:
-                    cfg = json.load(f)
-                _aura_instance = Aura(cfg.get("aura", {}))
-            except Exception as e:
-                print(f"[AURA] Warning: could not load config ({e}), using defaults",
-                      file=sys.stderr)
-                _aura_instance = Aura()
+    if _aura_instance is None:
+        with _aura_lock:
+            if _aura_instance is None:
+                try:
+                    import json
+                    cfg_path = os.path.join(ROOT, "config", "aios.cfg")
+                    with open(cfg_path) as f:
+                        cfg = json.load(f)
+                    _aura_instance = Aura(cfg.get("aura", {}))
+                except Exception:
+                    _aura_instance = Aura()
     return _aura_instance

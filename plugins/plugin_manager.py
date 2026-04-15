@@ -10,7 +10,6 @@ import sys
 import json
 import re
 import shutil
-import importlib
 import time
 import threading
 
@@ -268,13 +267,15 @@ if __name__ == "__main__":
 
 
 # Singleton
+_pm_lock     = __import__("threading").Lock()
 _pm_instance = None
 _pm_lock = threading.Lock()
 
 
 def get_plugin_manager() -> PluginManager:
     global _pm_instance
-    with _pm_lock:
-        if _pm_instance is None:
-            _pm_instance = PluginManager()
+    if _pm_instance is None:
+        with _pm_lock:
+            if _pm_instance is None:
+                _pm_instance = PluginManager()
     return _pm_instance

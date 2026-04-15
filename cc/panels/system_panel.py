@@ -1,7 +1,5 @@
 """CC Panel: System — real-time system info."""
 import os
-import time
-import platform
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 

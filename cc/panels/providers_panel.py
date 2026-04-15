@@ -23,14 +23,9 @@ class ProvidersPanel:
                 row += 1
 
         try:
-            from providers.base import get_provider_registry, FEAT_MESSAGING, \
-                FEAT_VOICE, FEAT_REMOTE, FEAT_DEPLOY, FEAT_CLOUD
-            from comms.base import get_comms_manager
-            from remote.base import get_remote_manager
+            from providers.base import get_provider_registry
 
             pr   = get_provider_registry()
-            cm   = get_comms_manager()
-            rm   = get_remote_manager()
 
             all_providers = pr.list_all()
 

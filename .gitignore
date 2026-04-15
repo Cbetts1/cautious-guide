@@ -3,15 +3,10 @@ __pycache__/
 *.py[cod]
 *.pyo
 
-# AIOS runtime data lives in ~/.aios/ (outside the repo) — nothing to ignore here.
-# If you run AIOS from inside the repo directory and a local .aios/ folder appears,
-# uncomment the line below:
-# .aios/
-
-# SECURITY NOTE: config/aios.cfg is committed as a template with empty pin_hash/pin_salt.
-# After you set a PIN it will contain your hashed credentials. Consider adding
-# the line below to prevent accidentally committing your personal config:
-# config/aios.cfg
+# AIOS runtime / user data (lives in home dir, never in the project tree)
+# Note: ~/.aios/ is outside the repo; this entry handles any accidental
+# checkout that lands .aios_userdata/ inside the project root.
+.aios_userdata/
 
 # Virtual environments
 venv/

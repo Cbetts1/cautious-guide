@@ -63,7 +63,7 @@ class EventsPanel:
                 pass
 
     def handle_key(self, key, curses_mod=None):
-        from cc.events import get_event_bus, LEVEL_OK, LEVEL_WARN, LEVEL_ERROR, LEVEL_INFO
+        from cc.events import get_event_bus, LEVEL_WARN, LEVEL_ERROR, LEVEL_INFO
         if key == curses_mod.KEY_UP:
             self._scroll += 1
         elif key == curses_mod.KEY_DOWN:

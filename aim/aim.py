@@ -15,7 +15,6 @@ import sys
 from typing import Optional
 from urllib.request import urlopen, Request
 from urllib.error import URLError
-from urllib.parse import urlencode
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
@@ -129,10 +128,12 @@ class AIM:
       - Online/offline detection
       - HTTP GET/POST via Python urllib (no extra deps)
       - Request queue: replays queued requests when connection restores
+        (capped at QUEUE_MAX_SIZE to prevent unbounded memory growth)
       - Simple bridge API for AIOS subsystems
     """
 
-    VERSION = _VERSION
+    VERSION       = "1.0.0"
+    QUEUE_MAX_SIZE = 500   # max pending offline requests
 
     def __init__(self, cfg: dict = None):
         cfg = cfg or {}
@@ -319,6 +320,14 @@ class AIM:
         except Exception:
             pass
 
+    def _enqueue(self, req: "AIMRequest") -> bool:
+        """Add a request to the offline queue; drop oldest if at cap."""
+        with self._lock:
+            if len(self._queue) >= self.QUEUE_MAX_SIZE:
+                self._queue.pop(0)   # drop oldest
+            self._queue.append(req)
+        return True
+
     # ── HTTP ──────────────────────────────────────────────────────────
 
     def fetch(self, url: str, timeout: float = 10.0) -> dict:
@@ -330,9 +339,7 @@ class AIM:
         if err:
             return {"ok": False, "status_code": 0, "body": "", "error": err}
         if not self._online:
-            req = AIMRequest(url)
-            with self._lock:
-                self._queue.append(req)
+            self._enqueue(AIMRequest(url))
             return {"ok": False, "status_code": 0, "body": "",
                     "error": "offline — request queued"}
 
@@ -341,9 +348,7 @@ class AIM:
     def post(self, url: str, data: dict, timeout: float = 10.0) -> dict:
         """POST JSON data to url."""
         if not self._online:
-            req = AIMRequest(url, "POST", data)
-            with self._lock:
-                self._queue.append(req)
+            self._enqueue(AIMRequest(url, "POST", data))
             return {"ok": False, "status_code": 0, "body": "",
                     "error": "offline — request queued"}
 
@@ -394,23 +399,22 @@ class AIM:
 
 
 # Singleton
+_aim_lock     = __import__("threading").Lock()
 _aim_instance = None
 _aim_lock = threading.Lock()
 
 
 def get_aim() -> AIM:
     global _aim_instance
-    with _aim_lock:
-        if _aim_instance is None:
-            try:
-                cfg_path = os.path.join(ROOT, "config", "aios.cfg")
-                with open(cfg_path) as f:
-                    cfg = json.load(f)
-                _aim_instance = AIM(cfg.get("aim", {}))
-            except Exception as e:
-                import sys as _sys
-                print(f"[AIM] Warning: could not load config ({e}), using defaults",
-                      file=_sys.stderr)
-                _aim_instance = AIM()
-            _aim_instance.start()
+    if _aim_instance is None:
+        with _aim_lock:
+            if _aim_instance is None:
+                try:
+                    cfg_path = os.path.join(ROOT, "config", "aios.cfg")
+                    with open(cfg_path) as f:
+                        cfg = json.load(f)
+                    _aim_instance = AIM(cfg.get("aim", {}))
+                except Exception:
+                    _aim_instance = AIM()
+                _aim_instance.start()
     return _aim_instance

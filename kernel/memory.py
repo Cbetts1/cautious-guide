@@ -4,7 +4,6 @@ Reads real memory and CPU stats from /proc on Linux/Termux.
 Falls back to subprocess-based reads on other platforms.
 """
 
-import os
 import time
 
 

@@ -47,7 +47,7 @@ class ProjectsPanel:
                 row += 1
 
         try:
-            from projects.registry import get_registry, PROJECT_TYPES
+            from projects.registry import get_registry
             reg      = get_registry()
             projects = reg.list_all()
 
@@ -116,7 +116,7 @@ class ProjectsPanel:
     def handle_key(self, key, curses_mod=None):
         c = curses_mod
         try:
-            from projects.registry import get_registry, PROJECT_TYPES
+            from projects.registry import get_registry
             reg      = get_registry()
             projects = reg.list_all()
 
@@ -142,7 +142,6 @@ class ProjectsPanel:
 
     def _create_demo_project(self, reg):
         """Create a demo project to show the system works."""
-        import time
         from projects.registry import PROJECT_TYPES
         # Cycle through types so demos are varied
         projects = reg.list_all()

@@ -7,7 +7,7 @@ should always check provider.supports('feature') before calling a
 feature-specific method so that partial providers degrade gracefully.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import List, Dict, Optional
 
 
@@ -130,11 +130,14 @@ class ProviderRegistry:
         return len(self._providers)
 
 
+_provider_registry_lock: __import__("threading").Lock = __import__("threading").Lock()
 _provider_registry: ProviderRegistry = None
 
 
 def get_provider_registry() -> ProviderRegistry:
     global _provider_registry
     if _provider_registry is None:
-        _provider_registry = ProviderRegistry()
+        with _provider_registry_lock:
+            if _provider_registry is None:
+                _provider_registry = ProviderRegistry()
     return _provider_registry

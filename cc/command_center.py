@@ -291,9 +291,12 @@ class CommandCenter:
 
         # Title row
         title  = " ◈  AIOS  AUTONOMOUS INTELLIGENCE OPERATING SYSTEM"
-        ver    = "v1.0.0 "
+        try:
+            from aios import AIOS_VERSION
+        except Exception:
+            AIOS_VERSION = "1.0.0"
+        ver    = f"v{AIOS_VERSION} "
         filler = " " * max(0, w - len(title) - len(ver) - 2)
-        line   = "║" + title + filler + ver + "║"
         _safe_addstr(stdscr, 1, 0, "║",  curses.color_pair(CP_CYAN_BLK))
         _safe_addstr(stdscr, 1, 1, title, curses.color_pair(CP_WHITE_BLK) | curses.A_BOLD)
         _safe_addstr(stdscr, 1, 1 + len(title) + len(filler),

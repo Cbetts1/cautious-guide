@@ -184,11 +184,14 @@ class ProjectRegistry:
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
 
+_registry_lock: __import__("threading").Lock = __import__("threading").Lock()
 _registry: ProjectRegistry = None
 
 
 def get_registry() -> ProjectRegistry:
     global _registry
     if _registry is None:
-        _registry = ProjectRegistry()
+        with _registry_lock:
+            if _registry is None:
+                _registry = ProjectRegistry()
     return _registry

@@ -1,1 +1,1 @@
-"""AIOS utilities package."""
+"""AIOS utility helpers."""

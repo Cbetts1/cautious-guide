@@ -1,24 +1,26 @@
-[build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.backends.legacy:build"
+[tool.ruff]
+# Python 3.8+ target (earliest supported version)
+target-version = "py38"
 
-[project]
-name = "aios"
-version = "1.0.0"
-description = "Autonomous Intelligence Operating System — Studio Hub Edition"
-readme = "README.md"
-license = { text = "MIT" }
-requires-python = ">=3.8"
-# AIOS uses only the Python standard library for its core functionality.
-dependencies = []
+# Exclude generated / vendor files
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "env",
+]
 
-[project.optional-dependencies]
-# Install llama-cpp-python to enable AURA LLM mode (set aura.mode = "llm" in config).
-llm = ["llama-cpp-python"]
-
-[project.scripts]
-aios = "aios:main"
-
-[tool.setuptools.packages.find]
-where = ["."]
-exclude = ["tests*"]
+[tool.ruff.lint]
+# Rules enabled:
+#   E  — pycodestyle errors
+#   F  — pyflakes
+# Rules explicitly ignored:
+#   E402 — module-level imports after sys.path manipulation (intentional
+#           pattern used in every AIOS module for standalone execution)
+#   E501 — line too long (pre-existing TUI/UI string formatting)
+#   E701 — multiple statements on one line (pre-existing style in plugins)
+#   E731 — lambda assignment (isolated use in webserver; low risk)
+#   F541 — f-string without placeholders (pre-existing in TUI panels)
+select  = ["E", "F"]
+ignore  = ["E402", "E501", "E701", "E731", "F541"]

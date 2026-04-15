@@ -2,7 +2,7 @@
 AIOS Plugin: monitor
 System resource monitor service.
 Samples CPU, memory, and disk every 5 seconds; appends to ~/.aios/monitor.log.
-Log is rotated when it exceeds MAX_LOG_BYTES (default 5 MB), keeping 3 backups.
+Log is rotated when it exceeds LOG_MAX_BYTES (default 10 MB).
 Registers itself with the KAL ProcessRegistry.
 """
 
@@ -20,9 +20,8 @@ if ROOT not in sys.path:
 PLUGIN_NAME    = "monitor"
 PLUGIN_VERSION = "1.0.0"
 LOG_PATH       = os.path.expanduser("~/.aios/monitor.log")
-INTERVAL       = 5          # seconds between samples
-MAX_LOG_BYTES  = 5 * 1024 * 1024   # rotate at 5 MB
-MAX_LOG_BACKUPS = 3
+LOG_MAX_BYTES  = 10 * 1024 * 1024   # 10 MB — rotate when exceeded
+INTERVAL       = 5   # seconds between samples
 
 _running   = False
 _thread    = None
@@ -30,21 +29,22 @@ _lock      = threading.Lock()
 _log_fh    = None
 
 
-def _rotate_log():
-    """Rotate monitor.log if it has grown past MAX_LOG_BYTES."""
+def _rotate_if_needed():
+    """Rotate monitor.log → monitor.log.1 when it exceeds LOG_MAX_BYTES."""
+    global _log_fh
     try:
-        if not os.path.isfile(LOG_PATH):
+        if _log_fh is None:
             return
-        if os.path.getsize(LOG_PATH) < MAX_LOG_BYTES:
+        size = os.fstat(_log_fh.fileno()).st_size
+        if size < LOG_MAX_BYTES:
             return
-        # Shift existing backups: .3 is dropped, .2→.3, .1→.2, (current)→.1
-        for i in range(MAX_LOG_BACKUPS, 0, -1):
-            older = f"{LOG_PATH}.{i}"
-            newer = f"{LOG_PATH}.{i - 1}" if i > 1 else LOG_PATH
-            if os.path.isfile(newer):
-                if os.path.isfile(older):
-                    os.remove(older)
-                os.rename(newer, older)
+        _log_fh.close()
+        _log_fh = None
+        rotated = LOG_PATH + ".1"
+        if os.path.isfile(rotated):
+            os.remove(rotated)
+        os.rename(LOG_PATH, rotated)
+        _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         pass
 
@@ -93,6 +93,7 @@ def _monitor_loop():
         if _log_fh:
             try:
                 _log_fh.write(line + "\n")
+                _rotate_if_needed()
             except Exception:
                 pass
         # Rotate after writing in case the write pushed us over the limit
