@@ -175,8 +175,10 @@ class LayersPanel:
             section(f"{plug_dot} PLUGINS — Optional Extensions "
                     f"({len(plug_names)} installed)")
             if plug_names:
-                for i, pname in enumerate(plug_names[:4]):
-                    fn = item_last if i == len(plug_names) - 1 or i == 3 else item
+                shown = plug_names[:4]
+                last_idx = min(3, len(plug_names) - 1)
+                for i, pname in enumerate(shown):
+                    fn = item_last if i == last_idx else item
                     fn("Plugin", pname, c.color_pair(_CP_WHITE))
                 if len(plug_names) > 4:
                     addline(f"    └─ ...and {len(plug_names) - 4} more")

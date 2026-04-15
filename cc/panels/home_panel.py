@@ -104,8 +104,9 @@ class HomePanel:
             try:
                 from aim.aim import get_aim
                 ai         = get_aim()
-                aim_online = ai.is_online()
-                aim_queued = len(ai._queue)
+                st         = ai.get_status()
+                aim_online = st["online"]
+                aim_queued = st["queued"]
             except Exception:
                 pass
             aim_dot  = "●" if aim_online else "○"

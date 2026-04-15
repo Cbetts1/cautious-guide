@@ -99,7 +99,7 @@ class NetworkPanel:
                 from aim.aim import get_aim
                 from cc.events import get_event_bus, LEVEL_INFO
                 aim = get_aim()
-                q   = len(aim._queue)
+                q   = aim.get_status()["queued"]
                 aim._flush_queue()
                 get_event_bus().emit("AIM", LEVEL_INFO,
                                      f"Queue flushed — {q} request(s) replayed")
