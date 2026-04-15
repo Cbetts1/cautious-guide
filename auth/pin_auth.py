@@ -13,29 +13,34 @@ import secrets
 import getpass
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
 CFG_PATH = os.path.join(ROOT, "config", "aios.cfg")
 
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-WHITE  = "\033[1;37m"
+from utils.colors import RESET, BOLD, CYAN, GREEN, RED, YELLOW, WHITE  # noqa: E402
+from version import __version__ as _VERSION  # noqa: E402
 
 
 def _load_cfg():
     try:
         with open(CFG_PATH) as f:
             return json.load(f)
-    except Exception:
+    except FileNotFoundError:
+        return {}  # First run — expected
+    except Exception as e:
+        print(f"[auth] Warning: could not load config ({e})", file=sys.stderr)
         return {}
 
 
 def _save_cfg(cfg):
     os.makedirs(os.path.dirname(CFG_PATH), exist_ok=True)
-    with open(CFG_PATH, "w") as f:
-        json.dump(cfg, f, indent=2)
+    try:
+        with open(CFG_PATH, "w") as f:
+            json.dump(cfg, f, indent=2)
+    except Exception as e:
+        print(f"[auth] Error: could not save config ({e})", file=sys.stderr)
+        raise
 
 
 def _hash_pin(pin: str, salt: str) -> str:
@@ -45,7 +50,7 @@ def _hash_pin(pin: str, salt: str) -> str:
 def _draw_lock():
     print(f"\n  {CYAN}┌─────────────────────────────────────┐{RESET}")
     print(f"  {CYAN}│{RESET}  {BOLD}{WHITE}◈ AIOS  AUTHENTICATION REQUIRED{RESET}      {CYAN}│{RESET}")
-    print(f"  {CYAN}│{RESET}  {CYAN}Autonomous Intelligence OS  v1.0.0{RESET}  {CYAN}│{RESET}")
+    print(f"  {CYAN}│{RESET}  {CYAN}Autonomous Intelligence OS  v{_VERSION}{RESET}  {CYAN}│{RESET}")
     print(f"  {CYAN}└─────────────────────────────────────┘{RESET}\n")
 
 

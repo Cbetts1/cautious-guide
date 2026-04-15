@@ -8,13 +8,23 @@ with a manifest.json describing it.
 import os
 import sys
 import json
+import re
 import shutil
 import importlib
 import time
+import threading
 
 ROOT         = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INSTALLED    = os.path.join(ROOT, "plugins", "installed")
 REGISTRY_PATH = os.path.join(ROOT, "plugins", "registry.json")
+
+# Only allow safe plugin names: letters, digits, hyphens, underscores.
+_VALID_NAME = re.compile(r'^[a-zA-Z0-9_-]{1,64}$')
+
+
+def _validate_plugin_name(name: str) -> bool:
+    """Return True if name is safe to use as a filesystem path component."""
+    return bool(_VALID_NAME.match(name))
 
 MANIFEST_TEMPLATE = {
     "name":        "",
@@ -109,6 +119,9 @@ class PluginManager:
         For bundled plugins: creates the directory and manifest.
         Returns (ok, message).
         """
+        if not _validate_plugin_name(name):
+            return False, (f"Invalid plugin name '{name}'. "
+                           "Use only letters, digits, hyphens, and underscores (max 64 chars).")
         if name in self._plugins:
             return False, f"Plugin '{name}' is already installed."
 
@@ -150,6 +163,8 @@ class PluginManager:
 
     def remove(self, name: str) -> tuple[bool, str]:
         """Uninstall a plugin. Removes its directory."""
+        if not _validate_plugin_name(name):
+            return False, f"Invalid plugin name '{name}'."
         if name not in self._plugins:
             return False, f"Plugin '{name}' is not installed."
 
@@ -162,6 +177,8 @@ class PluginManager:
             return False, f"Remove failed: {e}"
 
     def enable(self, name: str) -> tuple[bool, str]:
+        if not _validate_plugin_name(name):
+            return False, f"Invalid plugin name '{name}'."
         if name not in self._plugins:
             return False, f"Plugin '{name}' not found."
         p = self._plugins[name]
@@ -172,6 +189,8 @@ class PluginManager:
         return True, f"Plugin '{name}' enabled."
 
     def disable(self, name: str) -> tuple[bool, str]:
+        if not _validate_plugin_name(name):
+            return False, f"Invalid plugin name '{name}'."
         if name not in self._plugins:
             return False, f"Plugin '{name}' not found."
         p = self._plugins[name]
@@ -250,10 +269,12 @@ if __name__ == "__main__":
 
 # Singleton
 _pm_instance = None
+_pm_lock = threading.Lock()
 
 
 def get_plugin_manager() -> PluginManager:
     global _pm_instance
-    if _pm_instance is None:
-        _pm_instance = PluginManager()
+    with _pm_lock:
+        if _pm_instance is None:
+            _pm_instance = PluginManager()
     return _pm_instance

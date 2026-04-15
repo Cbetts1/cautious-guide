@@ -2,6 +2,7 @@
 AIOS Plugin: monitor
 System resource monitor service.
 Samples CPU, memory, and disk every 5 seconds; appends to ~/.aios/monitor.log.
+Log is rotated when it exceeds MAX_LOG_BYTES (default 5 MB), keeping 3 backups.
 Registers itself with the KAL ProcessRegistry.
 """
 
@@ -19,12 +20,33 @@ if ROOT not in sys.path:
 PLUGIN_NAME    = "monitor"
 PLUGIN_VERSION = "1.0.0"
 LOG_PATH       = os.path.expanduser("~/.aios/monitor.log")
-INTERVAL       = 5   # seconds between samples
+INTERVAL       = 5          # seconds between samples
+MAX_LOG_BYTES  = 5 * 1024 * 1024   # rotate at 5 MB
+MAX_LOG_BACKUPS = 3
 
 _running   = False
 _thread    = None
 _lock      = threading.Lock()
 _log_fh    = None
+
+
+def _rotate_log():
+    """Rotate monitor.log if it has grown past MAX_LOG_BYTES."""
+    try:
+        if not os.path.isfile(LOG_PATH):
+            return
+        if os.path.getsize(LOG_PATH) < MAX_LOG_BYTES:
+            return
+        # Shift existing backups: .3 is dropped, .2→.3, .1→.2, (current)→.1
+        for i in range(MAX_LOG_BACKUPS, 0, -1):
+            older = f"{LOG_PATH}.{i}"
+            newer = f"{LOG_PATH}.{i - 1}" if i > 1 else LOG_PATH
+            if os.path.isfile(newer):
+                if os.path.isfile(older):
+                    os.remove(older)
+                os.rename(newer, older)
+    except Exception:
+        pass
 
 
 def _sample() -> dict:
@@ -54,6 +76,7 @@ def _monitor_loop():
     global _running, _log_fh
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     try:
+        _rotate_log()
         _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         _log_fh = None
@@ -72,6 +95,8 @@ def _monitor_loop():
                 _log_fh.write(line + "\n")
             except Exception:
                 pass
+        # Rotate after writing in case the write pushed us over the limit
+        _rotate_log()
         time.sleep(INTERVAL)
 
     if _log_fh:
@@ -97,10 +122,11 @@ def start():
             target=_monitor_loop, daemon=True, name="svc-monitor"
         )
         _thread.start()
+    # Register with KAL using pid=0 — the monitor runs in a daemon thread,
+    # not a separate process, so there is no distinct PID to report.
     try:
         from kernel.kal import get_kal
-        import os as _os
-        get_kal().register_process(PLUGIN_NAME, _os.getpid(), "system resource monitor")
+        get_kal().register_process(PLUGIN_NAME, 0, "system resource monitor")
     except Exception:
         pass
     print(f"[{PLUGIN_NAME}] Monitor started. Log: {LOG_PATH}")

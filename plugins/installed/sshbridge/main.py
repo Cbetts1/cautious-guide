@@ -75,7 +75,7 @@ def start():
     cmd = [
         "ssh",
         "-N",
-        "-o", "StrictHostKeyChecking=no",
+        "-o", "StrictHostKeyChecking=accept-new",
         "-o", "ServerAliveInterval=30",
         "-L", f"{cfg['local_port']}:localhost:{cfg['remote_port']}",
     ]

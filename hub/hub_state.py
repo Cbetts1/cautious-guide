@@ -101,10 +101,12 @@ class HubState:
 
 
 _hub_state: HubState = None
+_hub_state_lock = threading.Lock()
 
 
 def get_hub_state() -> HubState:
     global _hub_state
-    if _hub_state is None:
-        _hub_state = HubState()
+    with _hub_state_lock:
+        if _hub_state is None:
+            _hub_state = HubState()
     return _hub_state

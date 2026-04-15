@@ -10,14 +10,12 @@ import json
 import time
 
 ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-WHITE  = "\033[1;37m"
-GRAY   = "\033[0;37m"
+
+import sys as _sys
+if ROOT not in _sys.path:
+    _sys.path.insert(0, ROOT)
+
+from utils.colors import RESET, BOLD, CYAN, GREEN, RED, YELLOW, WHITE, GRAY  # noqa: E402
 
 
 def cmd_arrow_build(args: list) -> int:

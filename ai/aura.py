@@ -9,10 +9,17 @@ import os
 import json
 import time
 import re
+import sys
+import threading
 from typing import Optional
 
 
 ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from version import __version__ as _VERSION  # noqa: E402
+
 RULES_PATH = os.path.join(ROOT, "ai", "rules", "base_rules.json")
 
 
@@ -24,7 +31,7 @@ class Aura:
     mode = "llm"    — forward to a local LLM (future: llama.cpp / Ollama)
     """
 
-    VERSION = "1.0.0"
+    VERSION = _VERSION
 
     def __init__(self, cfg: dict = None):
         cfg = cfg or {}
@@ -89,7 +96,20 @@ class Aura:
             return resp
 
         if self.mode == "llm":
-            resp = self._llm_query(text)
+            if self._llm is None:
+                # LLM mode requested but no model is loaded — warn and fall back.
+                warn = ("AURA is set to LLM mode but no model is loaded. "
+                        "Set 'aura.model_path' in config/aios.cfg and restart, "
+                        "or call aura.load_llm(path) to load a GGUF model. "
+                        "Falling back to rule-based mode.")
+                try:
+                    from cc.events import get_event_bus, LEVEL_WARN
+                    get_event_bus().emit("AURA", LEVEL_WARN, warn)
+                except Exception:
+                    pass
+                resp = self._rule_match(text) or self._fallback(text)
+            else:
+                resp = self._llm_query(text)
             self._add_context("aura", resp)
             return resp
 
@@ -160,17 +180,20 @@ class Aura:
 
 # Singleton
 _aura_instance = None
+_aura_lock = threading.Lock()
 
 
 def get_aura() -> Aura:
     global _aura_instance
-    if _aura_instance is None:
-        try:
-            import json
-            cfg_path = os.path.join(ROOT, "config", "aios.cfg")
-            with open(cfg_path) as f:
-                cfg = json.load(f)
-            _aura_instance = Aura(cfg.get("aura", {}))
-        except Exception:
-            _aura_instance = Aura()
+    with _aura_lock:
+        if _aura_instance is None:
+            try:
+                cfg_path = os.path.join(ROOT, "config", "aios.cfg")
+                with open(cfg_path) as f:
+                    cfg = json.load(f)
+                _aura_instance = Aura(cfg.get("aura", {}))
+            except Exception as e:
+                print(f"[AURA] Warning: could not load config ({e}), using defaults",
+                      file=sys.stderr)
+                _aura_instance = Aura()
     return _aura_instance
