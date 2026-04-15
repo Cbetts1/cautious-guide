@@ -1,7 +1,7 @@
 """
 AIOS Command Center
 Modern Unicode TUI. Default launch target after boot + auth.
-9-section sidebar menu, live status bar, panel content area.
+Sidebar menu, live status bar, panel content area.
 
 Layout (minimum 80×22):
   ╔═══════ HEADER (3 rows) ═══════════════════════════════════╗
@@ -38,16 +38,25 @@ MIN_WIDTH     = 80
 MIN_HEIGHT    = 22
 
 MENU_ITEMS = [
-    ("System",       "system"),
+    # ── Studio Hub ──────────────────────────────────────────
+    ("Studio Hub",   "hub"),
+    # ── Original core panels ────────────────────────────────
     ("ARROW Shell",  "arrow"),
+    ("System",       "system"),
     ("Services",     "services"),
     ("AI / AURA",    "aura"),
     ("Network/AIM",  "network"),
     ("Storage",      "storage"),
     ("Builder",      "builder"),
     ("Settings",     "settings"),
-    ("Help",         "help"),
     ("Events",       "events"),
+    # ── Studio Hub extensions ───────────────────────────────
+    ("Projects",     "projects"),
+    ("Messages",     "comms"),
+    ("Remote",       "remote"),
+    ("Providers",    "providers"),
+    ("Repair",       "repair"),
+    ("Help",         "help"),
 ]
 
 
@@ -112,8 +121,13 @@ class StatsCache:
                 self.cpu_pct   = cpu
                 self.svc_run   = kal.proc_registry.running_count()
                 self.svc_total = kal.proc_registry.total_count()
-        except Exception:
-            pass
+        except Exception as e:
+            try:
+                from cc.events import get_event_bus, LEVEL_WARN
+                get_event_bus().emit("cc.stats", LEVEL_WARN,
+                                     f"Stats update error: {e}")
+            except Exception:
+                pass
         try:
             from aim.aim import get_aim
             self.online = get_aim().is_online()
@@ -131,52 +145,96 @@ class CommandCenter:
         self._stats      = StatsCache()
         self._running    = True
         self._panels     = self._load_panels()
+        # Restore last panel from hub state
+        try:
+            from hub.hub_state import get_hub_state
+            last = get_hub_state().get("last_panel", "hub")
+            for i, (_, key) in enumerate(MENU_ITEMS):
+                if key == last:
+                    self.selected = i
+                    break
+        except Exception:
+            pass
 
     def _load_panels(self) -> dict:
+        """
+        Load each CC panel independently.
+        A failure in one panel is logged and isolated — the others still load.
+        """
+        panel_defs = [
+            ("hub",       "cc.panels.hub_panel",       "HubPanel"),
+            ("system",    "cc.panels.system_panel",    "SystemPanel"),
+            ("services",  "cc.panels.services_panel",  "ServicesPanel"),
+            ("aura",      "cc.panels.aura_panel",      "AuraPanel"),
+            ("network",   "cc.panels.network_panel",   "NetworkPanel"),
+            ("storage",   "cc.panels.storage_panel",   "StoragePanel"),
+            ("builder",   "cc.panels.builder_panel",   "BuilderPanel"),
+            ("settings",  "cc.panels.settings_panel",  "SettingsPanel"),
+            ("help",      "cc.panels.help_panel",      "HelpPanel"),
+            ("events",    "cc.panels.events_panel",    "EventsPanel"),
+            ("projects",  "cc.panels.projects_panel",  "ProjectsPanel"),
+            ("comms",     "cc.panels.comms_panel",     "CommsPanel"),
+            ("remote",    "cc.panels.remote_panel",    "RemotePanel"),
+            ("providers", "cc.panels.providers_panel", "ProvidersPanel"),
+            ("repair",    "cc.panels.repair_panel",    "RepairPanel"),
+        ]
         panels = {}
-        try:
-            from cc.panels.system_panel   import SystemPanel
-            from cc.panels.services_panel import ServicesPanel
-            from cc.panels.aura_panel     import AuraPanel
-            from cc.panels.network_panel  import NetworkPanel
-            from cc.panels.storage_panel  import StoragePanel
-            from cc.panels.builder_panel  import BuilderPanel
-            from cc.panels.settings_panel import SettingsPanel
-            from cc.panels.help_panel     import HelpPanel
-            from cc.panels.events_panel   import EventsPanel
-
-            panels = {
-                "system":   SystemPanel(),
-                "services": ServicesPanel(),
-                "aura":     AuraPanel(),
-                "network":  NetworkPanel(),
-                "storage":  StoragePanel(),
-                "builder":  BuilderPanel(),
-                "settings": SettingsPanel(),
-                "help":     HelpPanel(),
-                "events":   EventsPanel(),
-            }
-        except Exception as e:
-            pass
+        for panel_key, module_path, class_name in panel_defs:
+            try:
+                import importlib
+                mod   = importlib.import_module(module_path)
+                cls   = getattr(mod, class_name)
+                panels[panel_key] = cls()
+            except Exception as e:
+                # Log the failure visibly — do NOT silently swallow it
+                try:
+                    from cc.events import get_event_bus, LEVEL_ERROR
+                    get_event_bus().emit(
+                        "cc.panels", LEVEL_ERROR,
+                        f"Panel load failed [{panel_key}]: {e}"
+                    )
+                except Exception:
+                    pass
+                # Keep a sentinel so the UI can show a helpful message
+                panels[panel_key] = None
         return panels
 
     def run(self):
         try:
             curses.wrapper(self._main)
-        except Exception:
-            pass
+        except Exception as e:
+            # Surface the error instead of silently discarding it
+            print(f"\n\033[1;31m[AIOS] Command Center crashed: {e}\033[0m")
+            try:
+                from cc.events import get_event_bus, LEVEL_ERROR
+                get_event_bus().emit("cc", LEVEL_ERROR,
+                                     f"Command Center crash: {e}")
+            except Exception:
+                pass
+            input("Press Enter to continue...")
 
     def _main(self, stdscr):
         _init_colors()
         curses.curs_set(0)
         stdscr.keypad(True)
-        stdscr.timeout(500)   # 500ms timeout for getch — drives status refresh
+
+        # Use device-aware getch timeout
+        try:
+            from hub.device_profile import get_profile
+            _profile = get_profile()
+            getch_ms     = _profile.getch_ms
+            refresh_sec  = _profile.refresh_sec
+        except Exception:
+            getch_ms    = 500
+            refresh_sec = 2
+
+        stdscr.timeout(getch_ms)
 
         # Start stats background thread
         def _stats_loop():
             while self._running:
                 self._stats.update(self.kal)
-                time.sleep(2)
+                time.sleep(refresh_sec)
 
         t = threading.Thread(target=_stats_loop, daemon=True)
         t.start()
@@ -204,6 +262,15 @@ class CommandCenter:
                 continue   # timeout, just redraw (stats update)
 
             self._handle_key(stdscr, key, h, w)
+
+        # Persist session state on exit
+        try:
+            from hub.hub_state import get_hub_state
+            _, panel_key = MENU_ITEMS[self.selected]
+            get_hub_state().set("last_panel", panel_key)
+            get_hub_state().save()
+        except Exception:
+            pass
 
         self._running = False
 
@@ -285,12 +352,29 @@ class CommandCenter:
             return
 
         panel = self._panels.get(panel_key)
-        if panel:
+        if panel is None:
+            # Panel failed to load — show a clear, actionable error
+            _safe_addstr(stdscr, panel_y + 1, panel_x + 2,
+                         f"Panel '{panel_key}' failed to load.",
+                         curses.color_pair(CP_RED_BLK))
+            _safe_addstr(stdscr, panel_y + 2, panel_x + 2,
+                         "Check Events panel (key 0) for details.",
+                         curses.color_pair(CP_YELLOW_BLK))
+            return
+
+        try:
+            panel.render(stdscr, panel_y, panel_x, panel_h, panel_w,
+                         kal=self.kal, curses_mod=curses)
+        except Exception as e:
+            _safe_addstr(stdscr, panel_y + 1, panel_x + 2,
+                         f"Panel render error: {e}",
+                         curses.color_pair(CP_RED_BLK))
             try:
-                panel.render(stdscr, panel_y, panel_x, panel_h, panel_w,
-                             kal=self.kal, curses_mod=curses)
-            except Exception as e:
-                _safe_addstr(stdscr, panel_y + 1, panel_x + 2, f"Panel error: {e}")
+                from cc.events import get_event_bus, LEVEL_ERROR
+                get_event_bus().emit("cc.panels", LEVEL_ERROR,
+                                     f"Panel render error [{panel_key}]: {e}")
+            except Exception:
+                pass
 
     def _draw_arrow_prompt(self, stdscr, y, x, h, w):
         _safe_addstr(stdscr, y,     x, "  ARROW SHELL", curses.color_pair(CP_CYAN_BLK) | curses.A_BOLD)
@@ -389,7 +473,7 @@ class CommandCenter:
                 self.selected = idx
 
         elif key == ord("0"):
-            # Key 0 → item 10 (Events)
+            # Key 0 → 10th item (index 9)
             if len(MENU_ITEMS) >= 10:
                 self.selected = 9
 
@@ -398,7 +482,17 @@ class CommandCenter:
             _, panel_key = MENU_ITEMS[self.selected]
             panel = self._panels.get(panel_key)
             if panel and hasattr(panel, "handle_key"):
-                panel.handle_key(key, curses_mod=curses)
+                try:
+                    panel.handle_key(key, curses_mod=curses)
+                except Exception as e:
+                    try:
+                        from cc.events import get_event_bus, LEVEL_ERROR
+                        get_event_bus().emit(
+                            "cc.panels", LEVEL_ERROR,
+                            f"Panel key handler error [{panel_key}]: {e}"
+                        )
+                    except Exception:
+                        pass
 
     def _launch_arrow(self, stdscr):
         """Suspend curses, launch ARROW shell, resume curses."""

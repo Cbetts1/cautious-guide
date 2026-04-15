@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# AIOS runtime data (user-specific, not committed)
+~/.aios/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editor temp files
+*.swp
+*.swo
+*~
+.DS_Store
