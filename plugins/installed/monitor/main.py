@@ -82,7 +82,7 @@ def _monitor_loop():
     global _running, _log_fh
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     try:
-        _rotate_if_needed()
+        _rotate_log()
         _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         _log_fh = None
@@ -103,7 +103,7 @@ def _monitor_loop():
             except Exception:
                 pass
         # Rotate after writing in case the write pushed us over the limit
-        _rotate_if_needed()
+        _rotate_log()
         time.sleep(INTERVAL)
 
     if _log_fh:
