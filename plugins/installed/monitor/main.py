@@ -76,6 +76,7 @@ def _monitor_loop():
     global _running, _log_fh
     os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
     try:
+        _rotate_log()
         _log_fh = open(LOG_PATH, "a", buffering=1)
     except Exception:
         _log_fh = None
@@ -95,6 +96,8 @@ def _monitor_loop():
                 _rotate_if_needed()
             except Exception:
                 pass
+        # Rotate after writing in case the write pushed us over the limit
+        _rotate_log()
         time.sleep(INTERVAL)
 
     if _log_fh:
@@ -120,10 +123,11 @@ def start():
             target=_monitor_loop, daemon=True, name="svc-monitor"
         )
         _thread.start()
+    # Register with KAL using pid=0 — the monitor runs in a daemon thread,
+    # not a separate process, so there is no distinct PID to report.
     try:
         from kernel.kal import get_kal
-        import os as _os
-        get_kal().register_process(PLUGIN_NAME, _os.getpid(), "system resource monitor")
+        get_kal().register_process(PLUGIN_NAME, 0, "system resource monitor")
     except Exception:
         pass
     print(f"[{PLUGIN_NAME}] Monitor started. Log: {LOG_PATH}")

@@ -9,7 +9,13 @@ import os
 import subprocess
 import platform
 import time
+import threading
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from version import __version__ as _VERSION  # noqa: E402
 from kernel.memory import read_meminfo, read_cpu_percent
 from kernel.process import ProcessRegistry
 
@@ -26,7 +32,7 @@ class KAL:
       - System metadata
     """
 
-    VERSION = "1.0.0"
+    VERSION = _VERSION
     KERNEL_NAME = "Linux"          # swap here when moving to custom kernel
 
     def __init__(self):
@@ -174,6 +180,7 @@ class KAL:
 # Singleton
 _kal_lock     = __import__("threading").Lock()
 _kal_instance = None
+_kal_lock = threading.Lock()
 
 
 def get_kal() -> KAL:

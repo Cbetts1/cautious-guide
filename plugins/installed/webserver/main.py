@@ -1,7 +1,11 @@
 """
 AIOS Plugin: webserver
 Lightweight HTTP file server using Python's built-in http.server.
-Serves the AIOS root directory. Starts/stops cleanly; registers with KAL.
+Serves the AIOS root directory.
+
+By default the server binds to 127.0.0.1 (loopback only).
+Pass bind="0.0.0.0" to start() if you intentionally want network-wide access.
+Starts/stops cleanly; registers with KAL.
 """
 
 import os
@@ -24,6 +28,7 @@ _server    = None
 _thread    = None
 _lock      = threading.Lock()
 _port      = DEFAULT_PORT
+_bind_addr = DEFAULT_BIND
 
 
 class _SilentHandler(http.server.SimpleHTTPRequestHandler):
@@ -50,12 +55,12 @@ def start(port: int = None, host: str = None):
     global _server, _thread, _port
     with _lock:
         if _server is not None:
-            print(f"[{PLUGIN_NAME}] Already running on port {_port}.")
+            print(f"[{PLUGIN_NAME}] Already running on {_bind_addr}:{_port}.")
             return
         _port = port or DEFAULT_PORT
         _host = host if host is not None else DEFAULT_HOST
         try:
-            handler = lambda *a, **kw: _SilentHandler(
+            handler = lambda *a, **kw: _SilentHandler(  # noqa: E731
                 *a, directory=ROOT, **kw)
             _server = socketserver.TCPServer((_host, _port), handler)
             _server.allow_reuse_address = True
@@ -73,6 +78,8 @@ def start(port: int = None, host: str = None):
     _thread = threading.Thread(target=_serve, daemon=True, name="svc-webserver")
     _thread.start()
 
+    # Register with KAL using pid=0 — the server runs in a daemon thread,
+    # not a separate process, so there is no distinct PID to report.
     try:
         from kernel.kal import get_kal
         get_kal().register_process(PLUGIN_NAME, os.getpid(),
@@ -141,9 +148,10 @@ def help_cmd():
 def main(args=None):
     args = args or []
     cmd  = args[0] if args else "help"
-    if   cmd == "start":
+    if cmd == "start":
         port = int(args[1]) if len(args) > 1 else DEFAULT_PORT
-        start(port)
+        bind = args[2] if len(args) > 2 else DEFAULT_BIND
+        start(port, bind)
     elif cmd == "stop":   stop()
     elif cmd == "status": status()
     elif cmd == "help":   help_cmd()

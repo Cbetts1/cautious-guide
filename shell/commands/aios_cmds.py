@@ -223,11 +223,7 @@ def _cmd_version() -> int:
     print(f"  {CYAN}{'─' * 40}{RESET}")
     for component, ver in versions:
         print(f"  {CYAN}{component:<12}{RESET} v{ver}")
-    try:
-        import sys as _sys
-        print(f"  {CYAN}{'Python':<12}{RESET} {_sys.version.split()[0]}")
-    except Exception:
-        pass
+    print(f"  {CYAN}{'Python':<12}{RESET} {sys.version.split()[0]}")
     print(f"  {CYAN}{'─' * 40}{RESET}\n")
     return 0
 

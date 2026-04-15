@@ -91,6 +91,7 @@ class EventBus:
 
 _event_bus_lock: __import__("threading").Lock = __import__("threading").Lock()
 _event_bus: Optional[EventBus] = None
+_event_bus_lock = threading.Lock()
 
 
 def get_event_bus() -> EventBus:

@@ -10,17 +10,19 @@ import json
 import time
 import threading
 import socket
+import ipaddress as _ipaddress
+import sys
 from typing import Optional
 from urllib.request import urlopen, Request
 from urllib.error import URLError
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from version import __version__ as _VERSION  # noqa: E402
 
 # ── Private address ranges blocked for SSRF protection ───────────────────────
-_BLOCKED_PREFIXES = (
-    "127.", "10.", "0.", "169.254.", "192.168.",
-    "::1", "fc", "fd",
-)
 _BLOCKED_HOSTS = {"localhost", "local"}
 
 
@@ -28,6 +30,7 @@ def _validate_external_url(url: str) -> str:
     """
     Return an error string if the URL should be blocked, or '' if it is safe.
     Allows only http:// and https:// to non-private/loopback destinations.
+    Uses the ipaddress module to catch octal, decimal, hex, and IPv6 forms.
     """
     from urllib.parse import urlparse as _urlparse
     try:
@@ -39,11 +42,49 @@ def _validate_external_url(url: str) -> str:
     host = (parsed.hostname or "").lower()
     if not host:
         return "missing host"
+
+    # If the host looks like an IP address (including decimal/hex encodings),
+    # parse it with ipaddress for the most reliable private-range check.
+    try:
+        ip = _ipaddress.ip_address(host)
+        # For IPv4-mapped IPv6 (::ffff:127.0.0.1) also check the embedded address.
+        if isinstance(ip, _ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+            embedded = ip.ipv4_mapped
+            if (embedded.is_private or embedded.is_loopback
+                    or embedded.is_link_local or embedded.is_reserved):
+                return f"host '{host}' contains a private IPv4-mapped address"
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            return f"host '{host}' is a non-routable IP address"
+        return ""  # Valid public IP — no further checks needed
+    except ValueError:
+        pass  # Not a dotted-notation IP literal; fall through
+
+    # Handle decimal integer IP notation (e.g. 2130706433 == 127.0.0.1).
+    # Python's ipaddress.ip_address() accepts ints but not integer strings.
+    if host.isdigit():
+        try:
+            ip = _ipaddress.ip_address(int(host))
+            if (ip.is_private or ip.is_loopback or ip.is_link_local
+                    or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+                return f"host '{host}' is a non-routable IP address"
+            return ""
+        except ValueError:
+            pass
+
+    # Block known private hostnames
     if host in _BLOCKED_HOSTS:
         return f"host '{host}' is not allowed"
+
+    # Block common private hostname prefixes
+    _BLOCKED_PREFIXES = (
+        "127.", "10.", "0.", "169.254.", "192.168.",
+        "::1", "fc", "fd",
+    )
     for prefix in _BLOCKED_PREFIXES:
         if host.startswith(prefix):
             return f"host '{host}' resolves to a private/loopback address"
+
     # Block 172.16.0.0/12 (Docker/private)
     if host.startswith("172."):
         try:
@@ -52,14 +93,15 @@ def _validate_external_url(url: str) -> str:
                 return f"host '{host}' is in a private address range"
         except (IndexError, ValueError):
             pass
+
     return ""
 
 
 def _check_internet(host: str = "8.8.8.8", port: int = 53, timeout: float = 3.0) -> bool:
-    """Quick connectivity check via TCP socket."""
+    """Quick connectivity check via TCP socket (no global timeout side-effects)."""
     try:
-        socket.setdefaulttimeout(timeout)
-        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect((host, port))
+        s = socket.create_connection((host, port), timeout=timeout)
+        s.close()
         return True
     except OSError:
         return False
@@ -228,9 +270,13 @@ class AIM:
                 self.end_headers()
                 self.wfile.write(body)
 
+        # allow_reuse_address must be set as a class attribute *before* TCPServer
+        # calls server_bind() in __init__, otherwise the flag has no effect.
+        class _ReusableGatewayServer(socketserver.TCPServer):
+            allow_reuse_address = True
+
         try:
-            srv = socketserver.TCPServer(("127.0.0.1", port), _GatewayHandler)
-            srv.allow_reuse_address = True
+            srv = _ReusableGatewayServer(("127.0.0.1", port), _GatewayHandler)
         except OSError as e:
             return False, f"Could not bind gateway to :{port}: {e}"
 
@@ -355,6 +401,7 @@ class AIM:
 # Singleton
 _aim_lock     = __import__("threading").Lock()
 _aim_instance = None
+_aim_lock = threading.Lock()
 
 
 def get_aim() -> AIM:

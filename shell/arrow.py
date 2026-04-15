@@ -89,7 +89,7 @@ def _prompt() -> str:
 # ── Main shell loop ───────────────────────────────────────────────────────────
 
 class Arrow:
-    VERSION = "1.0.0"
+    VERSION = _VERSION
 
     def __init__(self):
         self._running    = False

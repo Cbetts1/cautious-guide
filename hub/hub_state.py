@@ -102,6 +102,7 @@ class HubState:
 
 _hub_state_lock: __import__("threading").Lock = __import__("threading").Lock()
 _hub_state: HubState = None
+_hub_state_lock = threading.Lock()
 
 
 def get_hub_state() -> HubState:

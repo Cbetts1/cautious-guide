@@ -36,14 +36,21 @@ def _load_cfg() -> dict:
     try:
         with open(CFG_PATH) as f:
             return json.load(f)
-    except Exception:
+    except FileNotFoundError:
+        return {}  # First run — expected
+    except Exception as e:
+        print(f"[auth] Warning: could not load config ({e})", file=sys.stderr)
         return {}
 
 
 def _save_cfg(cfg: dict):
     os.makedirs(os.path.dirname(CFG_PATH), exist_ok=True)
-    with open(CFG_PATH, "w") as f:
-        json.dump(cfg, f, indent=2)
+    try:
+        with open(CFG_PATH, "w") as f:
+            json.dump(cfg, f, indent=2)
+    except Exception as e:
+        print(f"[auth] Error: could not save config ({e})", file=sys.stderr)
+        raise
 
 
 def _load_auth() -> dict:

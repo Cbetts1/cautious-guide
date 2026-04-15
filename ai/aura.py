@@ -9,10 +9,17 @@ import os
 import json
 import time
 import re
+import sys
+import threading
 from typing import Optional
 
 
 ROOT       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from version import __version__ as _VERSION  # noqa: E402
+
 RULES_PATH = os.path.join(ROOT, "ai", "rules", "base_rules.json")
 
 
@@ -24,7 +31,7 @@ class Aura:
     mode = "llm"    — forward to a local LLM (future: llama.cpp / Ollama)
     """
 
-    VERSION = "1.0.0"
+    VERSION = _VERSION
 
     def __init__(self, cfg: dict = None):
         cfg = cfg or {}
@@ -179,6 +186,7 @@ class Aura:
 # Singleton
 _aura_lock     = __import__("threading").Lock()
 _aura_instance = None
+_aura_lock = threading.Lock()
 
 
 def get_aura() -> "Aura":
