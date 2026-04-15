@@ -1,0 +1,11 @@
+{
+  "name": "codepad",
+  "version": "1.0.0",
+  "description": "Lightweight code editor plugin for ARROW shell",
+  "type": "tool",
+  "entry": "main.py",
+  "commands": ["run", "status", "help"],
+  "requires": [],
+  "installed_at": "2026-04-15 00:00:00",
+  "enabled": true
+}

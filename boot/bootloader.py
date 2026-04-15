@@ -221,6 +221,20 @@ def _check_data_dirs():
     return True
 
 
+def _check_autostart():
+    """Start services listed in config.services.autostart."""
+    try:
+        from boot.service_loader import autostart_services
+        started = autostart_services()
+        if started:
+            _line(TAG_OK, f"Autostart: {len(started)} service(s) started — {', '.join(started)}")
+        else:
+            _line(TAG_INFO, "Autostart: no services configured")
+    except Exception as e:
+        _line(TAG_WARN, f"Autostart: {e}")
+    return True
+
+
 # ── Bootloader class ──────────────────────────────────────────────────────────
 
 class Bootloader:
@@ -266,9 +280,27 @@ class Bootloader:
         _check_tool("git",    ["git",    "--version"])
         _check_tool("python3",["python3","--version"])
         _check_tool("curl",   ["curl",   "--version"])
+        _check_autostart()
 
         # ── Boot Summary ──────────────────────────────────────────────
         _section("BOOT SUMMARY")
+
+        # Emit boot events to EventBus
+        try:
+            from cc.events import get_event_bus, LEVEL_OK, LEVEL_WARN, LEVEL_ERROR
+            bus = get_event_bus()
+            bus.emit("boot", LEVEL_OK, "AIOS boot sequence started")
+            if self.failures:
+                for f in self.failures:
+                    bus.emit("boot", LEVEL_ERROR, f"Critical failure: {f}")
+            if self.warnings:
+                for w in self.warnings:
+                    bus.emit("boot", LEVEL_WARN, f"Warning: {w}")
+            if not self.failures:
+                bus.emit("boot", LEVEL_OK, "Boot complete — all critical checks passed")
+        except Exception:
+            pass
+
         if self.failures:
             for f in self.failures:
                 _line(TAG_FAIL, f"Critical failure: {f}", delay=0)

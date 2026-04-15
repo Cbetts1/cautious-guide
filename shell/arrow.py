@@ -70,8 +70,18 @@ def _dispatch(cmd: str, args: list) -> tuple[bool, int]:
             except Exception as e:
                 print(f"  {RED}Error in arrow build: {e}{RESET}")
                 return True, 1
+        elif args and args[0] == "run":
+            # arrow run <plugin> [args...] — alias for aios run
+            from shell.commands.aios_cmds import cmd_aios
+            try:
+                rc = cmd_aios(["run"] + args[1:])
+                return True, (rc if isinstance(rc, int) else 0)
+            except Exception as e:
+                print(f"  {RED}Error in arrow run: {e}{RESET}")
+                return True, 1
         else:
             print(f"  {CYAN}arrow build <service|plugin|layer> <name>{RESET}")
+            print(f"  {CYAN}arrow run <plugin> [args]{RESET}")
             return True, 0
 
     return False, 0

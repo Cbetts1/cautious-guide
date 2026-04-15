@@ -1,62 +1,170 @@
 [
   {
-    "patterns": ["hello", "hi", "hey", "greetings"],
+    "patterns": ["hello", "hi", "hey", "greetings", "howdy"],
     "response": "AURA online. All systems nominal. How can I assist?"
   },
   {
-    "patterns": ["status", "how are you", "system status"],
-    "response": "Running rule-based engine. Memory, KAL, and shell subsystems are active. Type 'sysinfo' for full diagnostics."
+    "patterns": ["status", "how are you", "system status", "aios status"],
+    "response": "Running rule-based engine. Memory, KAL, ARROW, AIM, and CC subsystems are active. Type 'sysinfo' for full diagnostics."
   },
   {
-    "patterns": ["what are you", "who are you", "identify"],
-    "response": "I am AURA — Autonomous Universal Reasoning Assistant. I run inside AIOS as the AI intelligence layer. Currently operating in rule-based mode."
+    "patterns": ["what are you", "who are you", "identify", "introduce yourself"],
+    "response": "I am AURA — Autonomous Universal Reasoning Assistant. I run inside AIOS as the AI intelligence layer. Currently operating in rule-based mode, LLM-ready when a model path is configured."
   },
   {
-    "patterns": ["what is aios", "explain aios"],
-    "response": "AIOS is the Autonomous Intelligence Operating System. It runs the ARROW shell, AIM web bridge, and this AI layer. Designed to be kernel-swappable and fully pluggable."
+    "patterns": ["what is aios", "explain aios", "describe aios"],
+    "response": "AIOS is the Autonomous Intelligence Operating System. It runs the ARROW shell, AIM web bridge, and this AI layer. Designed to be kernel-swappable and fully pluggable. Start with: python3 aios.py"
   },
   {
-    "patterns": ["what is arrow", "explain arrow"],
-    "response": "ARROW — Autonomous Routing Relay Orchestration Workflow — is the AIOS shell. It executes AIOS-native commands, real system commands, and scaffolds new layers with 'arrow build'."
+    "patterns": ["what is arrow", "explain arrow", "describe arrow"],
+    "response": "ARROW — Autonomous Routing Relay Orchestration Workflow — is the AIOS shell. It executes AIOS-native commands, real system commands, and scaffolds new layers with 'arrow build'. Launch it from the CC menu item 2."
   },
   {
-    "patterns": ["what is aim", "explain aim"],
-    "response": "AIM — Adaptive Interface Mesh — bridges AIOS to the existing web. It acts as a local gateway that connects outbound when online and queues when offline."
+    "patterns": ["what is aim", "explain aim", "describe aim"],
+    "response": "AIM — Adaptive Interface Mesh — bridges AIOS to the existing web. It acts as a local HTTP gateway that connects outbound when online and queues requests when offline. Run 'aim status' to check. Start the local gateway with 'aim serve'."
   },
   {
-    "patterns": ["install", "add plugin"],
-    "response": "To install a plugin run: aios install <name>. To list available plugins: aios list plugins. To remove: aios remove <name>."
+    "patterns": ["what is aura", "explain aura", "describe aura"],
+    "response": "I'm AURA — the AI brain of AIOS. In rule-based mode I match your query against patterns in ai/rules/base_rules.json. To use an LLM, set aura.model_path in config/aios.cfg."
   },
   {
-    "patterns": ["build", "scaffold", "create service"],
-    "response": "Use 'arrow build service <name>' to scaffold a new service. Use 'arrow build plugin <name>' to create a new plugin. The builder generates all required files and wires them in."
+    "patterns": ["what is kal", "explain kal", "kernel abstraction"],
+    "response": "KAL is the Kernel Abstraction Layer in kernel/kal.py. All OS calls (memory, CPU, disk, processes, network) go through it. To port AIOS to a new OS or kernel, replace only kernel/kal.py."
   },
   {
-    "patterns": ["help", "commands", "what can you do"],
-    "response": "AURA can answer questions, analyze system state, and guide you through AIOS. For shell commands type 'help' in ARROW. For CC navigation use arrow keys + Enter."
+    "patterns": ["install", "add plugin", "how to install"],
+    "response": "To install a plugin run: aios install <name>. To list available plugins: aios list available. To remove: aios remove <name>. Built-in plugins: monitor, webserver, filebrowser, codepad, sshbridge."
   },
   {
-    "patterns": ["memory", "ram"],
-    "response": "Run 'sysinfo' in ARROW or check the System panel in the Command Center for live memory stats."
+    "patterns": ["build", "scaffold", "create service", "new service"],
+    "response": "Use 'arrow build service <name>' to scaffold a new service. Use 'arrow build plugin <name>' to create a plugin. Use 'arrow build layer <name>' for a new system layer. Add --desc 'description' for a manifest description."
   },
   {
-    "patterns": ["boot", "bootloader"],
-    "response": "Boot runs a POST-style sequence checking Python, KAL, memory, plugins, and subsystems. Each check reports [OK], [FAIL], or [WARN] with a timestamp."
+    "patterns": ["help", "commands", "what can you do", "list commands"],
+    "response": "Type 'help' in ARROW for the full command list. Key commands: sysinfo, aios run/stop/install/remove, aura <question>, aim status/serve, services, arrow build/run. In CC use ↑/↓ and 1-0 keys."
+  },
+  {
+    "patterns": ["memory", "ram", "memory usage"],
+    "response": "Run 'sysinfo' in ARROW or check the System panel (key 1 in CC) for live memory stats. The monitor plugin logs memory every 5 seconds to ~/.aios/monitor.log."
+  },
+  {
+    "patterns": ["cpu", "processor", "cpu usage"],
+    "response": "Run 'sysinfo' for live CPU percentage. The monitor plugin samples CPU every 5 seconds. Run 'aios run monitor tail' to see recent samples."
+  },
+  {
+    "patterns": ["disk", "storage", "disk usage", "disk space"],
+    "response": "Run 'sysinfo' for disk usage at the AIOS root. The Storage panel (key 6 in CC) shows all mounts and AIOS directory sizes. Press C in the Storage panel to clean __pycache__ files."
+  },
+  {
+    "patterns": ["boot", "bootloader", "boot sequence", "post"],
+    "response": "Boot runs a POST-style sequence: Phase1=Hardware/OS, Phase2=Core, Phase3=Subsystems, Phase4=Plugins/Autostart. Each check reports [OK], [FAIL], or [WARN]. Critical failures drop to recovery shell."
   },
   {
     "patterns": ["kernel", "kal"],
-    "response": "The KAL (Kernel Abstraction Layer) wraps all OS calls. To move AIOS to a custom kernel, replace kernel/kal.py. No other code changes needed."
+    "response": "The KAL (Kernel Abstraction Layer) wraps all OS calls. To move AIOS to a custom kernel, replace kernel/kal.py. No other code changes needed — every subsystem calls get_kal()."
   },
   {
-    "patterns": ["pin", "password", "auth", "lock"],
-    "response": "Authentication uses a salted SHA-256 PIN hash. Change your PIN in Settings or by editing config/aios.cfg and clearing pin_hash and pin_salt."
+    "patterns": ["pin", "password", "auth", "lock", "authentication"],
+    "response": "Authentication uses a salted SHA-256 PIN hash. Change your PIN in the Settings panel (key 8) or by editing config/aios.cfg. To reset: clear pin_hash and pin_salt in config, then restart AIOS."
   },
   {
-    "patterns": ["update", "upgrade"],
-    "response": "Run 'aios update' in ARROW to check for plugin updates. For AIOS core updates, run 'git pull' in the AIOS directory."
+    "patterns": ["update", "upgrade", "aios update"],
+    "response": "Run 'aios update' in ARROW to pull the latest AIOS core from git. Plugin updates are manual — reinstall with 'aios install <name>'."
   },
   {
     "patterns": ["exit", "quit", "shutdown", "power off"],
-    "response": "Type 'exit' in ARROW or press Q in the Command Center to exit. AIOS will save state and shut down cleanly."
+    "response": "Type 'exit' in ARROW or press Q in the Command Center to exit. AIOS saves shell history and shuts down cleanly."
+  },
+  {
+    "patterns": ["monitor plugin", "monitor service", "system monitor"],
+    "response": "The monitor plugin samples CPU/memory/disk every 5 seconds and logs to ~/.aios/monitor.log. Start: 'aios run monitor start'. Check: 'aios run monitor status'. View log: 'aios run monitor tail'. It auto-starts on boot."
+  },
+  {
+    "patterns": ["webserver", "http server", "file server", "web server"],
+    "response": "The webserver plugin serves the AIOS root directory over HTTP (default port 8080). Start: 'aios run webserver start'. Stop: 'aios stop webserver'. Access at http://localhost:8080/. Change port: 'aios run webserver start 9090'."
+  },
+  {
+    "patterns": ["filebrowser", "file browser", "file manager", "browse files"],
+    "response": "The filebrowser plugin is a curses-based file manager. Launch: 'aios run filebrowser run [path]'. Navigate with ↑/↓, Enter to open, Backspace for parent, V to view file, Q to quit."
+  },
+  {
+    "patterns": ["codepad", "code editor", "editor", "edit file"],
+    "response": "CodePad is a minimal curses text editor. Open a file: 'aios run codepad run <file>'. Keys: ↑/↓/←/→ navigate, Ctrl+S save, Ctrl+Q quit, Ctrl+G goto line, Home/End, PgUp/PgDn."
+  },
+  {
+    "patterns": ["sshbridge", "ssh tunnel", "ssh bridge", "remote access"],
+    "response": "The sshbridge plugin manages SSH tunnels. Configure: 'aios run sshbridge config remote_host <host>'. Then: 'aios run sshbridge start'. Status: 'aios run sshbridge status'. Requires openssh installed."
+  },
+  {
+    "patterns": ["services", "service list", "running services", "service management"],
+    "response": "View running services in CC Services panel (key 3). In ARROW: 'services' lists KAL-registered services. Start a service: 'aios run <name> start'. Stop: 'aios stop <name>'. Autostart list is in config/aios.cfg services.autostart."
+  },
+  {
+    "patterns": ["autostart", "auto start", "startup services"],
+    "response": "Services in config/aios.cfg under 'services.autostart' start automatically at boot. Default: [\"monitor\", \"aura\"]. Edit the list to add/remove autostart services. They are started by boot/service_loader.py."
+  },
+  {
+    "patterns": ["settings", "configuration", "config", "change setting"],
+    "response": "Open the Settings panel in CC (key 8 or press 8). Use ↑/↓ to navigate fields, Enter to edit a value, Esc to cancel. Changes are saved immediately to config/aios.cfg. Sensitive fields (PIN) cannot be edited here."
+  },
+  {
+    "patterns": ["network", "internet", "connectivity", "online"],
+    "response": "AIM checks internet connectivity every 15 seconds. View status in CC Network panel (key 5) or run 'aim status' in ARROW. Force a check: 'aim check'. Start local HTTP gateway: 'aim serve'. Endpoint: http://127.0.0.1:7070/status"
+  },
+  {
+    "patterns": ["aim gateway", "local gateway", "aim serve", "http gateway"],
+    "response": "The AIM local HTTP gateway exposes two endpoints: GET /status (AIM status JSON) and GET /fetch?url=... (proxy a URL fetch). Start: 'aim serve [port]'. Stop: 'aim stop'. Default port: 7070."
+  },
+  {
+    "patterns": ["events", "event log", "audit log", "system events"],
+    "response": "The Events panel (key 0 in CC) shows a scrollable log of all AIOS events. Use ↑/↓ to scroll, F to filter by level (ALL/ERROR/WARN/INFO), C to clear the log. Events are emitted by boot, auth, plugins, AIM, and all subsystems."
+  },
+  {
+    "patterns": ["plugin", "plugins", "plugin system", "how plugins work"],
+    "response": "Plugins live in plugins/installed/<name>/. Each needs a manifest.json and main.py with a main(args) function. Available commands defined in manifest commands[]. Install: 'aios install <name>'. Remove: 'aios remove <name>'. Run: 'aios run <name> <cmd>'."
+  },
+  {
+    "patterns": ["termux", "android", "mobile", "termux install"],
+    "response": "On Termux: pkg update && pkg install python git. Clone AIOS: git clone <repo>. Run: cd cautious-guide && python3 aios.py. For storage access: termux-setup-storage. For SSH: pkg install openssh."
+  },
+  {
+    "patterns": ["linux install", "ubuntu install", "debian install", "linux setup"],
+    "response": "On Linux: ensure python3 and git are installed. Clone: git clone <repo>. Run: cd cautious-guide && python3 aios.py. The system uses only stdlib — no pip install needed."
+  },
+  {
+    "patterns": ["error", "crash", "fix", "broken", "not working"],
+    "response": "If AIOS crashes: check boot output for [FAIL] lines. For KAL errors, verify /proc is accessible. For plugin errors, check plugins/installed/<name>/main.py. Run 'aios status' for a quick diagnostic."
+  },
+  {
+    "patterns": ["boot fail", "boot failure", "critical failure", "won't start"],
+    "response": "On boot failure, AIOS drops to recovery shell (bash). Common causes: Python < 3.8, missing config/aios.cfg, curses not available. Check the [FAIL] lines in boot output. Fix and restart with: python3 aios.py"
+  },
+  {
+    "patterns": ["reload rules", "update rules", "aura reload", "rules reload"],
+    "response": "Reload AURA rules without restart: call aura.reload_rules() or run 'aura reload' in ARROW (not a shell command — use the CC AI panel). This re-reads ai/rules/base_rules.json live."
+  },
+  {
+    "patterns": ["create plugin", "write plugin", "new plugin", "plugin template"],
+    "response": "Create a plugin: 'arrow build plugin <name>'. This generates plugins/installed/<name>/main.py and manifest.json. Implement main(args), run(args), stop(), status() functions. The plugin is immediately available via 'aios run <name>'."
+  },
+  {
+    "patterns": ["version", "aios version", "component versions"],
+    "response": "Run 'aios version' in ARROW to see all component versions: AIOS, KAL, ARROW, AURA, AIM, CC, Python. Current AIOS version: 1.0.0."
+  },
+  {
+    "patterns": ["clear cache", "clean pycache", "free space"],
+    "response": "Clean Python cache: press C in the Storage panel (CC key 6) or run: find . -type d -name __pycache__ -exec rm -rf {} + from the AIOS root. The Storage panel will report bytes freed."
+  },
+  {
+    "patterns": ["command center", "cc", "tui", "interface", "navigation"],
+    "response": "The Command Center (CC) is the curses TUI. Keys: ↑/↓ or 1-9/0 select panels, Q quit, S/Enter in Services panel to manage services. Press Enter on ARROW Shell (2) to drop to ARROW, then 'cc' to return."
+  },
+  {
+    "patterns": ["history", "command history", "arrow history"],
+    "response": "ARROW saves history to ~/.aios/arrow_history (configurable in config). Use ↑/↓ for recent commands. Ctrl+R triggers readline reverse search. History size is configurable: aios.cfg shell.history_size."
+  },
+  {
+    "patterns": ["tab completion", "autocomplete", "complete"],
+    "response": "ARROW supports Tab completion for built-in commands (aios, aim, arrow build/run), plugin names, and file paths. Completion is powered by readline and the ArrowCompleter in shell/completer.py."
   }
 ]

@@ -1,0 +1,11 @@
+{
+  "name": "monitor",
+  "version": "1.0.0",
+  "description": "System resource monitor service (autostarted)",
+  "type": "service",
+  "entry": "main.py",
+  "commands": ["start", "stop", "status", "tail", "help"],
+  "requires": [],
+  "installed_at": "2026-04-15 00:00:00",
+  "enabled": true
+}

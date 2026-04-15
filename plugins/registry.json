@@ -6,7 +6,8 @@
       "description": "Lightweight HTTP file server for AIOS",
       "type": "service",
       "bundled": true,
-      "requires": []
+      "requires": [],
+      "commands": ["start", "stop", "status", "help"]
     },
     {
       "name": "sshbridge",
@@ -14,7 +15,8 @@
       "description": "SSH tunnel bridge via AIM",
       "type": "service",
       "bundled": true,
-      "requires": ["openssh"]
+      "requires": ["openssh"],
+      "commands": ["start", "stop", "status", "config", "help"]
     },
     {
       "name": "filebrowser",
@@ -22,7 +24,8 @@
       "description": "Terminal-based file manager plugin",
       "type": "tool",
       "bundled": true,
-      "requires": []
+      "requires": [],
+      "commands": ["run", "status", "help"]
     },
     {
       "name": "monitor",
@@ -30,7 +33,8 @@
       "description": "System resource monitor service (autostarted)",
       "type": "service",
       "bundled": true,
-      "requires": []
+      "requires": [],
+      "commands": ["start", "stop", "status", "tail", "help"]
     },
     {
       "name": "codepad",
@@ -38,7 +42,8 @@
       "description": "Lightweight code editor plugin for ARROW shell",
       "type": "tool",
       "bundled": true,
-      "requires": []
+      "requires": [],
+      "commands": ["run", "status", "help"]
     }
   ]
 }

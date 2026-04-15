@@ -112,12 +112,28 @@ class PinAuth:
 
             if _hash_pin(pin, salt) == stored_hash:
                 print(f"\n  {GREEN}  ✓ Authentication successful.{RESET}\n")
+                try:
+                    from cc.events import get_event_bus, LEVEL_OK
+                    get_event_bus().emit("auth", LEVEL_OK, "Authentication successful")
+                except Exception:
+                    pass
                 return True
 
             remaining = self.max_attempts - attempt
             if remaining > 0:
                 print(f"  {RED}  Incorrect PIN. {remaining} attempt(s) remaining.{RESET}\n")
+                try:
+                    from cc.events import get_event_bus, LEVEL_WARN
+                    get_event_bus().emit("auth", LEVEL_WARN,
+                                         f"Failed PIN attempt ({attempt}/{self.max_attempts})")
+                except Exception:
+                    pass
             else:
                 print(f"  {RED}  Maximum attempts exceeded. System locked.{RESET}\n")
+                try:
+                    from cc.events import get_event_bus, LEVEL_ERROR
+                    get_event_bus().emit("auth", LEVEL_ERROR, "Max PIN attempts exceeded — system locked")
+                except Exception:
+                    pass
 
         return False

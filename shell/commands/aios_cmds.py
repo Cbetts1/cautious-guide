@@ -103,7 +103,7 @@ def cmd_aios(args: list) -> int:
                 print(f"  {GRAY}  {p['description']}{RESET}")
             print(f"  {CYAN}{'─' * 50}{RESET}\n")
 
-        elif what in ("available", "all"):
+        elif what in ("available", "all", "plugins"):
             available = pm.list_available()
             print(f"\n  {CYAN}{'─' * 50}{RESET}")
             print(f"  {BOLD}AVAILABLE PLUGINS{RESET}")
@@ -133,6 +133,18 @@ def cmd_aios(args: list) -> int:
         print(f"  {GREEN if ok else RED}{msg}{RESET}")
         return 0 if ok else 1
 
+    elif sub == "run":
+        if not rest:
+            print(f"  {RED}Usage: aios run <plugin-name> [args...]{RESET}")
+            return 1
+        return _cmd_plugin_run(rest[0], rest[1:])
+
+    elif sub == "stop":
+        if not rest:
+            print(f"  {RED}Usage: aios stop <plugin-name>{RESET}")
+            return 1
+        return _cmd_plugin_stop(rest[0])
+
     elif sub == "status":
         cmd_sysinfo([])
         return 0
@@ -147,6 +159,9 @@ def cmd_aios(args: list) -> int:
             print(f"  {YELLOW}Could not pull updates: {result['stderr'].strip()}{RESET}")
         return result["returncode"]
 
+    elif sub == "version":
+        return _cmd_version()
+
     elif sub in ("help", "--help", "-h"):
         _aios_help()
         return 0
@@ -156,19 +171,81 @@ def cmd_aios(args: list) -> int:
         return 1
 
 
+def _cmd_plugin_run(name: str, plugin_args: list) -> int:
+    """Run a plugin by name, forwarding args to plugin's main()."""
+    import importlib.util
+    import os as _os
+    plug_dir = _os.path.join(ROOT, "plugins", "installed", name)
+    entry    = _os.path.join(plug_dir, "main.py")
+    if not _os.path.isfile(entry):
+        print(f"  {RED}Plugin '{name}' not installed or missing main.py{RESET}")
+        return 1
+    try:
+        spec = importlib.util.spec_from_file_location(f"plugin_{name}", entry)
+        mod  = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        cmd_args = plugin_args or ["run"]
+        if hasattr(mod, "main"):
+            mod.main(cmd_args)
+        else:
+            print(f"  {RED}Plugin '{name}' has no main() entry point.{RESET}")
+            return 1
+        try:
+            from cc.events import get_event_bus, LEVEL_INFO
+            get_event_bus().emit("aios", LEVEL_INFO, f"Plugin run: {name} {' '.join(cmd_args)}")
+        except Exception:
+            pass
+        return 0
+    except Exception as e:
+        print(f"  {RED}Error running plugin '{name}': {e}{RESET}")
+        return 1
+
+
+def _cmd_plugin_stop(name: str) -> int:
+    """Send stop command to a running plugin."""
+    return _cmd_plugin_run(name, ["stop"])
+
+
+def _cmd_version() -> int:
+    """Print all AIOS component versions."""
+    versions = [
+        ("AIOS",    "1.0.0"),
+        ("KAL",     "1.0.0"),
+        ("ARROW",   "1.0.0"),
+        ("AURA",    "1.0.0"),
+        ("AIM",     "1.0.0"),
+        ("CC",      "1.0.0"),
+    ]
+    print(f"\n  {CYAN}{'─' * 40}{RESET}")
+    print(f"  {BOLD}{WHITE}AIOS Component Versions{RESET}")
+    print(f"  {CYAN}{'─' * 40}{RESET}")
+    for component, ver in versions:
+        print(f"  {CYAN}{component:<12}{RESET} v{ver}")
+    try:
+        import sys as _sys
+        print(f"  {CYAN}{'Python':<12}{RESET} {_sys.version.split()[0]}")
+    except Exception:
+        pass
+    print(f"  {CYAN}{'─' * 40}{RESET}\n")
+    return 0
+
+
 def _aios_help():
     print(f"""
-  {CYAN}{'─' * 50}{RESET}
+  {CYAN}{'─' * 54}{RESET}
   {BOLD}AIOS COMMANDS{RESET}
-  {CYAN}{'─' * 50}{RESET}
-  {WHITE}aios install <plugin>{RESET}     Install a plugin
-  {WHITE}aios remove  <plugin>{RESET}     Remove a plugin
+  {CYAN}{'─' * 54}{RESET}
+  {WHITE}aios install <plugin>{RESET}            Install a plugin
+  {WHITE}aios remove  <plugin>{RESET}            Remove a plugin
   {WHITE}aios list [installed|available]{RESET}  List plugins
-  {WHITE}aios enable  <plugin>{RESET}     Enable a plugin
-  {WHITE}aios disable <plugin>{RESET}     Disable a plugin
-  {WHITE}aios status{RESET}              Show system status
-  {WHITE}aios update{RESET}              Pull latest AIOS updates
-  {CYAN}{'─' * 50}{RESET}
+  {WHITE}aios enable  <plugin>{RESET}            Enable a plugin
+  {WHITE}aios disable <plugin>{RESET}            Disable a plugin
+  {WHITE}aios run     <plugin> [args]{RESET}     Run/start a plugin
+  {WHITE}aios stop    <plugin>{RESET}            Stop a running plugin
+  {WHITE}aios status{RESET}                      Show system status
+  {WHITE}aios version{RESET}                     Print component versions
+  {WHITE}aios update{RESET}                      Pull latest AIOS updates
+  {CYAN}{'─' * 54}{RESET}
 """)
 
 
@@ -197,7 +274,11 @@ def cmd_aim(args: list) -> int:
         print(f"\n  {CYAN}◈ AIM — Adaptive Interface Mesh{RESET}")
         print(f"  Status   : {online_str}")
         print(f"  Queued   : {s['queued']} request(s)")
-        print(f"  Version  : {s['version']}\n")
+        print(f"  Version  : {s['version']}")
+        if s.get("gateway_port"):
+            gw = f"{GREEN}running on :{s['gateway_port']}{RESET}"
+            print(f"  Gateway  : {gw}")
+        print()
         return 0
 
     elif sub == "check":
@@ -218,10 +299,27 @@ def cmd_aim(args: list) -> int:
             print(f"  {RED}Error: {result['error']}{RESET}")
         return 0 if result["ok"] else 1
 
+    elif sub == "serve":
+        from aim.aim import get_aim
+        aim  = get_aim()
+        port = int(args[1]) if len(args) > 1 else None
+        ok, msg = aim.start_gateway(port)
+        print(f"  {GREEN if ok else RED}{msg}{RESET}")
+        return 0 if ok else 1
+
+    elif sub == "stop":
+        from aim.aim import get_aim
+        aim = get_aim()
+        aim.stop_gateway()
+        print(f"  {GREEN}AIM gateway stopped.{RESET}")
+        return 0
+
     else:
-        print(f"  {CYAN}aim status{RESET}       — connectivity status")
-        print(f"  {CYAN}aim check{RESET}        — force connectivity check")
-        print(f"  {CYAN}aim fetch <url>{RESET}  — fetch URL via AIM")
+        print(f"  {CYAN}aim status{RESET}         — connectivity status")
+        print(f"  {CYAN}aim check{RESET}          — force connectivity check")
+        print(f"  {CYAN}aim fetch <url>{RESET}    — fetch URL via AIM")
+        print(f"  {CYAN}aim serve [port]{RESET}   — start local HTTP gateway (default :7070)")
+        print(f"  {CYAN}aim stop{RESET}           — stop local HTTP gateway")
         return 0
 
 
@@ -254,17 +352,23 @@ def cmd_help(args: list) -> int:
 
   {BOLD}BUILT-IN COMMANDS{RESET}
   {WHITE}sysinfo{RESET}                      System status and resource usage
-  {WHITE}aios <sub> [args]{RESET}            AIOS management (install/remove/list...)
+  {WHITE}aios <sub> [args]{RESET}            AIOS management (install/remove/list/run/stop...)
   {WHITE}aura <query>{RESET}                 Ask AURA AI
-  {WHITE}aim  <sub>{RESET}                   AIM web bridge (status/check/fetch)
+  {WHITE}aim  <sub>{RESET}                   AIM web bridge (status/check/fetch/serve/stop)
   {WHITE}services{RESET}                     List AIOS-managed services
   {WHITE}arrow build service <name>{RESET}   Scaffold a new service
   {WHITE}arrow build plugin  <name>{RESET}   Scaffold a new plugin
   {WHITE}arrow build layer   <name>{RESET}   Scaffold a new system layer
+  {WHITE}arrow run <plugin> [args]{RESET}    Run a plugin (alias for aios run)
   {WHITE}cc{RESET}                           Return to Command Center
   {WHITE}clear{RESET}                        Clear screen
   {WHITE}help{RESET}                         This message
   {WHITE}exit / quit{RESET}                  Exit ARROW shell
+
+  {BOLD}PLUGINS{RESET}
+  {WHITE}aios list available{RESET}          See all available plugins
+  {WHITE}aios install <name>{RESET}          Install a plugin
+  {WHITE}aios run <name> [cmd]{RESET}        Run a plugin command (start/stop/status/run...)
 
   {BOLD}SYSTEM COMMANDS{RESET}
   All standard Linux/Termux commands pass through to the system.
@@ -273,7 +377,7 @@ def cmd_help(args: list) -> int:
   {BOLD}HISTORY & COMPLETION{RESET}
   ↑/↓ arrow keys — command history
   Tab            — auto-complete commands and paths
-  Ctrl+R         — reverse history search
+  Ctrl+R         — reverse history search (readline built-in)
   Ctrl+C         — cancel current input
 """)
     return 0

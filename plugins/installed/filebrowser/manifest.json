@@ -1,0 +1,11 @@
+{
+  "name": "filebrowser",
+  "version": "1.0.0",
+  "description": "Terminal-based file manager plugin",
+  "type": "tool",
+  "entry": "main.py",
+  "commands": ["run", "status", "help"],
+  "requires": [],
+  "installed_at": "2026-04-15 00:00:00",
+  "enabled": true
+}

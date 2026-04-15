@@ -72,10 +72,20 @@ class Aura:
             response = self._rule_match(text)
             if response:
                 self._add_context("aura", response)
+                try:
+                    from cc.events import get_event_bus, LEVEL_INFO
+                    get_event_bus().emit("AURA", LEVEL_INFO, f"Query matched: {text[:60]}")
+                except Exception:
+                    pass
                 return response
             # Fallback
             resp = self._fallback(text)
             self._add_context("aura", resp)
+            try:
+                from cc.events import get_event_bus, LEVEL_INFO
+                get_event_bus().emit("AURA", LEVEL_INFO, f"Query fallback: {text[:60]}")
+            except Exception:
+                pass
             return resp
 
         if self.mode == "llm":
@@ -120,6 +130,17 @@ class Aura:
         except Exception:
             pass
         return False
+
+    def reload_rules(self) -> int:
+        """Reload rules from disk without restarting AURA. Returns rule count."""
+        self._rules = self._load_rules()
+        try:
+            from cc.events import get_event_bus, LEVEL_OK
+            get_event_bus().emit("AURA", LEVEL_OK,
+                                 f"Rules reloaded — {len(self._rules)} rules loaded")
+        except Exception:
+            pass
+        return len(self._rules)
 
     def get_context(self) -> list:
         return list(self.context)
