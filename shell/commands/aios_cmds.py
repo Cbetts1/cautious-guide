@@ -9,17 +9,11 @@ import time
 import json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-BLUE   = "\033[1;34m"
-WHITE  = "\033[1;37m"
-GRAY   = "\033[0;37m"
-DIM    = "\033[2m"
+from utils.colors import RESET, BOLD, CYAN, GREEN, RED, YELLOW, BLUE, WHITE, GRAY, DIM  # noqa: E402
+from version import __version__ as _VERSION  # noqa: E402
 
 
 def cmd_sysinfo(args: list) -> int:
@@ -209,23 +203,19 @@ def _cmd_plugin_stop(name: str) -> int:
 def _cmd_version() -> int:
     """Print all AIOS component versions."""
     versions = [
-        ("AIOS",    "1.0.0"),
-        ("KAL",     "1.0.0"),
-        ("ARROW",   "1.0.0"),
-        ("AURA",    "1.0.0"),
-        ("AIM",     "1.0.0"),
-        ("CC",      "1.0.0"),
+        ("AIOS",    _VERSION),
+        ("KAL",     _VERSION),
+        ("ARROW",   _VERSION),
+        ("AURA",    _VERSION),
+        ("AIM",     _VERSION),
+        ("CC",      _VERSION),
     ]
     print(f"\n  {CYAN}{'─' * 40}{RESET}")
     print(f"  {BOLD}{WHITE}AIOS Component Versions{RESET}")
     print(f"  {CYAN}{'─' * 40}{RESET}")
     for component, ver in versions:
         print(f"  {CYAN}{component:<12}{RESET} v{ver}")
-    try:
-        import sys as _sys
-        print(f"  {CYAN}{'Python':<12}{RESET} {_sys.version.split()[0]}")
-    except Exception:
-        pass
+    print(f"  {CYAN}{'Python':<12}{RESET} {sys.version.split()[0]}")
     print(f"  {CYAN}{'─' * 40}{RESET}\n")
     return 0
 

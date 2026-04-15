@@ -21,17 +21,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-# ANSI
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-WHITE  = "\033[1;37m"
-BLUE   = "\033[1;34m"
-GRAY   = "\033[0;37m"
-DIM    = "\033[2m"
+from utils.colors import RESET, BOLD, CYAN, GREEN, RED, YELLOW, WHITE, BLUE, GRAY, DIM  # noqa: E402
+from version import __version__ as _VERSION  # noqa: E402
 
 # ── Built-in dispatcher ───────────────────────────────────────────────────────
 
@@ -100,7 +91,7 @@ def _prompt() -> str:
 # ── Main shell loop ───────────────────────────────────────────────────────────
 
 class Arrow:
-    VERSION = "1.0.0"
+    VERSION = _VERSION
 
     def __init__(self):
         self._running    = False
