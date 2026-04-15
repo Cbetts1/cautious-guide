@@ -6,7 +6,6 @@ without changing any higher-level code.
 """
 
 import os
-import sys
 import subprocess
 import platform
 import time
@@ -58,7 +57,12 @@ class KAL:
         }
 
     def get_uptime_seconds(self) -> float:
-        return time.time() - self._boot_time
+        """Return system uptime in seconds from /proc/uptime; fall back to process uptime."""
+        try:
+            with open("/proc/uptime") as f:
+                return float(f.read().split()[0])
+        except Exception:
+            return time.time() - self._boot_time
 
     def get_uptime_str(self) -> str:
         sec = int(self.get_uptime_seconds())
@@ -168,11 +172,14 @@ class KAL:
 
 
 # Singleton
+_kal_lock     = __import__("threading").Lock()
 _kal_instance = None
 
 
 def get_kal() -> KAL:
     global _kal_instance
     if _kal_instance is None:
-        _kal_instance = KAL()
+        with _kal_lock:
+            if _kal_instance is None:
+                _kal_instance = KAL()
     return _kal_instance

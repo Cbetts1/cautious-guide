@@ -89,11 +89,14 @@ class EventBus:
 
 # ── Singleton ─────────────────────────────────────────────────────────────────
 
+_event_bus_lock: __import__("threading").Lock = __import__("threading").Lock()
 _event_bus: Optional[EventBus] = None
 
 
 def get_event_bus() -> EventBus:
     global _event_bus
     if _event_bus is None:
-        _event_bus = EventBus()
+        with _event_bus_lock:
+            if _event_bus is None:
+                _event_bus = EventBus()
     return _event_bus

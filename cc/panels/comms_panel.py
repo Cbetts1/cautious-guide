@@ -132,7 +132,6 @@ class CommsPanel:
             addline(f"    features: {', '.join(sorted(p.features))}")
 
     def handle_key(self, key, curses_mod=None):
-        c = curses_mod
         if key in (ord("m"), ord("M")):
             self._tab = "messages"
             self._msg = ""

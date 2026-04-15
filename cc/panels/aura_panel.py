@@ -1,5 +1,4 @@
 """CC Panel: AI/AURA — conversational AI interface."""
-import os
 import textwrap
 
 
@@ -78,7 +77,6 @@ class AuraPanel:
 
     def handle_key(self, key, curses_mod=None):
         """Handle keystrokes while AURA panel is active."""
-        c = curses_mod
         if key == 10 or key == 13:  # Enter
             if self._input.strip():
                 user_text = self._input.strip()

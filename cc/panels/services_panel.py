@@ -1,5 +1,4 @@
 """CC Panel: Services — AIOS-managed services with live navigation."""
-import os
 
 
 class ServicesPanel:

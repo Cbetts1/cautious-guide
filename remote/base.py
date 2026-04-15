@@ -167,11 +167,14 @@ class RemoteManager:
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
 
+_remote_manager_lock: __import__("threading").Lock = __import__("threading").Lock()
 _remote_manager: RemoteManager = None
 
 
 def get_remote_manager() -> RemoteManager:
     global _remote_manager
     if _remote_manager is None:
-        _remote_manager = RemoteManager()
+        with _remote_manager_lock:
+            if _remote_manager is None:
+                _remote_manager = RemoteManager()
     return _remote_manager

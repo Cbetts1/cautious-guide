@@ -89,6 +89,10 @@ class Aura:
             return resp
 
         if self.mode == "llm":
+            # LLM mode is NOT YET FULLY IMPLEMENTED.
+            # load_llm() must be called with a valid llama-cpp-python model
+            # path before this branch can produce real LLM responses.
+            # Until then it falls back to the rule-based engine.
             resp = self._llm_query(text)
             self._add_context("aura", resp)
             return resp
@@ -109,8 +113,22 @@ class Aura:
                 "Try 'help' or ask about specific AIOS components.")
 
     def _llm_query(self, text: str) -> str:
-        # Future: integrate llama-cpp-python or Ollama REST API
-        # For now, fall back to rules
+        """
+        LLM query stub — NOT YET FULLY IMPLEMENTED.
+
+        To enable real LLM responses:
+          1. Install llama-cpp-python: pip install llama-cpp-python
+          2. Call aura.load_llm("/path/to/model.gguf") at startup.
+
+        Until a model is loaded this falls back to the rule-based engine.
+        """
+        if self._llm is not None:
+            try:
+                result = self._llm(text, max_tokens=256)
+                return result["choices"][0]["text"].strip()
+            except Exception:
+                pass
+        # Fallback to rules when no model is loaded
         response = self._rule_match(text)
         return response or self._fallback(text)
 
@@ -159,18 +177,21 @@ class Aura:
 
 
 # Singleton
+_aura_lock     = __import__("threading").Lock()
 _aura_instance = None
 
 
-def get_aura() -> Aura:
+def get_aura() -> "Aura":
     global _aura_instance
     if _aura_instance is None:
-        try:
-            import json
-            cfg_path = os.path.join(ROOT, "config", "aios.cfg")
-            with open(cfg_path) as f:
-                cfg = json.load(f)
-            _aura_instance = Aura(cfg.get("aura", {}))
-        except Exception:
-            _aura_instance = Aura()
+        with _aura_lock:
+            if _aura_instance is None:
+                try:
+                    import json
+                    cfg_path = os.path.join(ROOT, "config", "aios.cfg")
+                    with open(cfg_path) as f:
+                        cfg = json.load(f)
+                    _aura_instance = Aura(cfg.get("aura", {}))
+                except Exception:
+                    _aura_instance = Aura()
     return _aura_instance

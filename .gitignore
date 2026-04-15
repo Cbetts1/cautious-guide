@@ -3,8 +3,10 @@ __pycache__/
 *.py[cod]
 *.pyo
 
-# AIOS runtime data (user-specific, not committed)
-~/.aios/
+# AIOS runtime / user data (lives in home dir, never in the project tree)
+# Note: ~/.aios/ is outside the repo; this entry handles any accidental
+# checkout that lands .aios_userdata/ inside the project root.
+.aios_userdata/
 
 # Virtual environments
 venv/

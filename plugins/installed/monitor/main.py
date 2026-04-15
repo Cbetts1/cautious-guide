@@ -2,6 +2,7 @@
 AIOS Plugin: monitor
 System resource monitor service.
 Samples CPU, memory, and disk every 5 seconds; appends to ~/.aios/monitor.log.
+Log is rotated when it exceeds LOG_MAX_BYTES (default 10 MB).
 Registers itself with the KAL ProcessRegistry.
 """
 
@@ -19,12 +20,33 @@ if ROOT not in sys.path:
 PLUGIN_NAME    = "monitor"
 PLUGIN_VERSION = "1.0.0"
 LOG_PATH       = os.path.expanduser("~/.aios/monitor.log")
+LOG_MAX_BYTES  = 10 * 1024 * 1024   # 10 MB — rotate when exceeded
 INTERVAL       = 5   # seconds between samples
 
 _running   = False
 _thread    = None
 _lock      = threading.Lock()
 _log_fh    = None
+
+
+def _rotate_if_needed():
+    """Rotate monitor.log → monitor.log.1 when it exceeds LOG_MAX_BYTES."""
+    global _log_fh
+    try:
+        if _log_fh is None:
+            return
+        size = os.fstat(_log_fh.fileno()).st_size
+        if size < LOG_MAX_BYTES:
+            return
+        _log_fh.close()
+        _log_fh = None
+        rotated = LOG_PATH + ".1"
+        if os.path.isfile(rotated):
+            os.remove(rotated)
+        os.rename(LOG_PATH, rotated)
+        _log_fh = open(LOG_PATH, "a", buffering=1)
+    except Exception:
+        pass
 
 
 def _sample() -> dict:
@@ -70,6 +92,7 @@ def _monitor_loop():
         if _log_fh:
             try:
                 _log_fh.write(line + "\n")
+                _rotate_if_needed()
             except Exception:
                 pass
         time.sleep(INTERVAL)

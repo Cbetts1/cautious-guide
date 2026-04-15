@@ -15,23 +15,12 @@ import sys
 import subprocess
 import shlex
 import signal
-import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-# ANSI
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-WHITE  = "\033[1;37m"
-BLUE   = "\033[1;34m"
-GRAY   = "\033[0;37m"
-DIM    = "\033[2m"
+from utils.ansi import RESET, BOLD, CYAN, GREEN, RED, WHITE, BLUE, GRAY
 
 # ── Built-in dispatcher ───────────────────────────────────────────────────────
 

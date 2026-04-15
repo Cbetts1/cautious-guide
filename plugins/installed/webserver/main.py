@@ -18,6 +18,7 @@ if ROOT not in sys.path:
 PLUGIN_NAME    = "webserver"
 PLUGIN_VERSION = "1.0.0"
 DEFAULT_PORT   = 8080
+DEFAULT_HOST   = "127.0.0.1"   # localhost-only by default; use "" for all interfaces
 
 _server    = None
 _thread    = None
@@ -45,20 +46,21 @@ class _SilentHandler(http.server.SimpleHTTPRequestHandler):
             pass
 
 
-def start(port: int = None):
+def start(port: int = None, host: str = None):
     global _server, _thread, _port
     with _lock:
         if _server is not None:
             print(f"[{PLUGIN_NAME}] Already running on port {_port}.")
             return
         _port = port or DEFAULT_PORT
+        _host = host if host is not None else DEFAULT_HOST
         try:
             handler = lambda *a, **kw: _SilentHandler(
                 *a, directory=ROOT, **kw)
-            _server = socketserver.TCPServer(("", _port), handler)
+            _server = socketserver.TCPServer((_host, _port), handler)
             _server.allow_reuse_address = True
         except OSError as e:
-            print(f"[{PLUGIN_NAME}] Could not bind to port {_port}: {e}")
+            print(f"[{PLUGIN_NAME}] Could not bind to {_host}:{_port}: {e}")
             _server = None
             return
 
@@ -74,16 +76,16 @@ def start(port: int = None):
     try:
         from kernel.kal import get_kal
         get_kal().register_process(PLUGIN_NAME, os.getpid(),
-                                   f"HTTP file server on :{_port}")
+                                   f"HTTP file server on {_host}:{_port}")
     except Exception:
         pass
     try:
         from cc.events import get_event_bus, LEVEL_OK
         get_event_bus().emit(PLUGIN_NAME, LEVEL_OK,
-                             f"HTTP server started on http://0.0.0.0:{_port}/")
+                             f"HTTP server started on http://{_host}:{_port}/")
     except Exception:
         pass
-    print(f"[{PLUGIN_NAME}] Serving {ROOT} on http://0.0.0.0:{_port}/")
+    print(f"[{PLUGIN_NAME}] Serving {ROOT} on http://{_host}:{_port}/")
 
 
 def stop():
@@ -116,22 +118,23 @@ def status():
     with _lock:
         running = _server is not None
     if running:
-        print(f"[{PLUGIN_NAME}] v{PLUGIN_VERSION} — RUNNING on http://0.0.0.0:{_port}/")
+        print(f"[{PLUGIN_NAME}] v{PLUGIN_VERSION} — RUNNING on http://{DEFAULT_HOST}:{_port}/")
         print(f"  Serving: {ROOT}")
     else:
         print(f"[{PLUGIN_NAME}] v{PLUGIN_VERSION} — STOPPED")
-    print(f"  Default port: {DEFAULT_PORT}")
+    print(f"  Default bind : {DEFAULT_HOST}:{DEFAULT_PORT}")
 
 
 def help_cmd():
     print(f"""
   [{PLUGIN_NAME}] v{PLUGIN_VERSION} — HTTP File Server
   Commands:
-    start [port]   Start server (default port {DEFAULT_PORT})
+    start [port]   Start server (default port {DEFAULT_PORT}, bind {DEFAULT_HOST})
     stop           Stop server
     status         Show server state
     help           This message
-  Access: http://localhost:{DEFAULT_PORT}/
+  Access: http://{DEFAULT_HOST}:{DEFAULT_PORT}/
+  Note:   The server binds to {DEFAULT_HOST} (localhost only) by default.
 """)
 
 

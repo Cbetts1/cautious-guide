@@ -100,11 +100,14 @@ class HubState:
             return sum(n.values())
 
 
+_hub_state_lock: __import__("threading").Lock = __import__("threading").Lock()
 _hub_state: HubState = None
 
 
 def get_hub_state() -> HubState:
     global _hub_state
     if _hub_state is None:
-        _hub_state = HubState()
+        with _hub_state_lock:
+            if _hub_state is None:
+                _hub_state = HubState()
     return _hub_state

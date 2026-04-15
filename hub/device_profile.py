@@ -12,7 +12,6 @@ config (hub.device_mode) or at runtime.
 """
 
 import os
-import time
 
 # ── Mode constants ─────────────────────────────────────────────────────────────
 MODE_LITE     = "lite"
@@ -146,11 +145,14 @@ class DeviceProfile:
         )
 
 
+_profile_lock: __import__("threading").Lock = __import__("threading").Lock()
 _profile: DeviceProfile = None
 
 
 def get_profile() -> DeviceProfile:
     global _profile
     if _profile is None:
-        _profile = DeviceProfile()
+        with _profile_lock:
+            if _profile is None:
+                _profile = DeviceProfile()
     return _profile

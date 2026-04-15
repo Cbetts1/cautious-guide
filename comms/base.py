@@ -208,11 +208,14 @@ class CommsManager:
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
 
+_comms_lock: __import__("threading").Lock = __import__("threading").Lock()
 _comms_manager: CommsManager = None
 
 
 def get_comms_manager() -> CommsManager:
     global _comms_manager
     if _comms_manager is None:
-        _comms_manager = CommsManager()
+        with _comms_lock:
+            if _comms_manager is None:
+                _comms_manager = CommsManager()
     return _comms_manager

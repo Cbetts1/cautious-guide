@@ -9,7 +9,6 @@ import os
 import sys
 import json
 import shutil
-import importlib
 import time
 
 ROOT         = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -249,11 +248,14 @@ if __name__ == "__main__":
 
 
 # Singleton
+_pm_lock     = __import__("threading").Lock()
 _pm_instance = None
 
 
 def get_plugin_manager() -> PluginManager:
     global _pm_instance
     if _pm_instance is None:
-        _pm_instance = PluginManager()
+        with _pm_lock:
+            if _pm_instance is None:
+                _pm_instance = PluginManager()
     return _pm_instance

@@ -12,20 +12,10 @@ import subprocess
 import json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-
-# ── ANSI helpers ─────────────────────────────────────────────────────────────
-
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-DIM    = "\033[2m"
-RED    = "\033[1;31m"
-GREEN  = "\033[1;32m"
-YELLOW = "\033[1;33m"
-BLUE   = "\033[1;34m"
-CYAN   = "\033[1;36m"
-WHITE  = "\033[1;37m"
-GRAY   = "\033[0;37m"
+from utils.ansi import RESET, BOLD, DIM, RED, GREEN, YELLOW, BLUE, CYAN, WHITE, GRAY
 
 TAG_OK   = f"{GREEN}[  OK  ]{RESET}"
 TAG_FAIL = f"{RED}[ FAIL ]{RESET}"
@@ -50,7 +40,7 @@ def _header():
     print(f"  {CYAN}{'═' * w}{RESET}")
     print(f"  {CYAN}║{RESET}  {BOLD}{WHITE}◈ AIOS  AUTONOMOUS INTELLIGENCE OPERATING SYSTEM{RESET}"
           f"{'':>16}{CYAN}║{RESET}")
-    print(f"  {CYAN}║{RESET}  {GRAY}Boot Sequence v1.0.0  —  Kernel Abstraction Layer Active"
+    print(f"  {CYAN}║{RESET}  {GRAY}Boot Sequence — Kernel Abstraction Layer Active"
           f"{'':>8}{CYAN}║{RESET}")
     print(f"  {CYAN}{'═' * w}{RESET}")
     print()
@@ -181,7 +171,6 @@ def _check_aura():
 
 def _check_aim():
     try:
-        from aim.aim import AIM
         _line(TAG_OK, "AIM — Adaptive Interface Mesh ready")
         return True
     except Exception as e:
@@ -191,7 +180,6 @@ def _check_aim():
 
 def _check_arrow():
     try:
-        from shell.arrow import Arrow
         _line(TAG_OK, "ARROW Shell — Autonomous Routing Relay Orchestration Workflow ready")
         return True
     except Exception as e:
@@ -201,7 +189,8 @@ def _check_arrow():
 
 def _check_cc():
     try:
-        import curses
+        import curses as _curses  # noqa: F401
+        del _curses
         _line(TAG_OK, "Command Center — curses TUI engine available")
         return True
     except ImportError:

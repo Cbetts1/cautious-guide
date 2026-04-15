@@ -5,21 +5,12 @@ These are dispatched before hitting the system shell.
 
 import os
 import sys
-import time
-import json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-BLUE   = "\033[1;34m"
-WHITE  = "\033[1;37m"
-GRAY   = "\033[0;37m"
-DIM    = "\033[2m"
+from utils.ansi import RESET, BOLD, CYAN, GREEN, RED, YELLOW, WHITE, GRAY
 
 
 def cmd_sysinfo(args: list) -> int:
@@ -175,8 +166,15 @@ def _cmd_plugin_run(name: str, plugin_args: list) -> int:
     """Run a plugin by name, forwarding args to plugin's main()."""
     import importlib.util
     import os as _os
-    plug_dir = _os.path.join(ROOT, "plugins", "installed", name)
-    entry    = _os.path.join(plug_dir, "main.py")
+
+    # Guard against path-traversal (e.g. name = "../../etc/passwd")
+    installed_root = _os.path.realpath(_os.path.join(ROOT, "plugins", "installed"))
+    plug_dir       = _os.path.realpath(_os.path.join(installed_root, name))
+    if not plug_dir.startswith(installed_root + _os.sep):
+        print(f"  {RED}Invalid plugin name: '{name}'{RESET}")
+        return 1
+
+    entry = _os.path.join(plug_dir, "main.py")
     if not _os.path.isfile(entry):
         print(f"  {RED}Plugin '{name}' not installed or missing main.py{RESET}")
         return 1
@@ -208,13 +206,17 @@ def _cmd_plugin_stop(name: str) -> int:
 
 def _cmd_version() -> int:
     """Print all AIOS component versions."""
+    try:
+        from aios import AIOS_VERSION
+    except Exception:
+        AIOS_VERSION = "1.0.0"
     versions = [
-        ("AIOS",    "1.0.0"),
-        ("KAL",     "1.0.0"),
-        ("ARROW",   "1.0.0"),
-        ("AURA",    "1.0.0"),
-        ("AIM",     "1.0.0"),
-        ("CC",      "1.0.0"),
+        ("AIOS",  AIOS_VERSION),
+        ("KAL",   AIOS_VERSION),
+        ("ARROW", AIOS_VERSION),
+        ("AURA",  AIOS_VERSION),
+        ("AIM",   AIOS_VERSION),
+        ("CC",    AIOS_VERSION),
     ]
     print(f"\n  {CYAN}{'─' * 40}{RESET}")
     print(f"  {BOLD}{WHITE}AIOS Component Versions{RESET}")
@@ -344,10 +346,14 @@ def cmd_services(args: list) -> int:
 
 def cmd_help(args: list) -> int:
     """Show ARROW shell help."""
+    try:
+        from aios import AIOS_VERSION
+    except Exception:
+        AIOS_VERSION = "1.0.0"
     print(f"""
   {CYAN}╔══════════════════════════════════════════════════════╗{RESET}
   {CYAN}║  ARROW — Autonomous Routing Relay Orchestration     ║{RESET}
-  {CYAN}║          Workflow Shell  v1.0.0                     ║{RESET}
+  {CYAN}║          Workflow Shell  v{AIOS_VERSION}{'':>27}║{RESET}
   {CYAN}╚══════════════════════════════════════════════════════╝{RESET}
 
   {BOLD}BUILT-IN COMMANDS{RESET}

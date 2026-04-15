@@ -6,18 +6,15 @@ arrow build layer   <name>  — scaffold a new system layer
 """
 
 import os
+import sys
 import json
 import time
 
 ROOT   = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-RESET  = "\033[0m"
-BOLD   = "\033[1m"
-CYAN   = "\033[1;36m"
-GREEN  = "\033[1;32m"
-RED    = "\033[1;31m"
-YELLOW = "\033[1;33m"
-WHITE  = "\033[1;37m"
-GRAY   = "\033[0;37m"
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from utils.ansi import RESET, BOLD, CYAN, GREEN, RED, YELLOW, WHITE, GRAY
 
 
 def cmd_arrow_build(args: list) -> int:
