@@ -28,7 +28,7 @@ _server    = None
 _thread    = None
 _lock      = threading.Lock()
 _port      = DEFAULT_PORT
-_bind_addr = DEFAULT_BIND
+_bind_addr = DEFAULT_HOST
 
 
 class _SilentHandler(http.server.SimpleHTTPRequestHandler):
@@ -150,7 +150,7 @@ def main(args=None):
     cmd  = args[0] if args else "help"
     if cmd == "start":
         port = int(args[1]) if len(args) > 1 else DEFAULT_PORT
-        bind = args[2] if len(args) > 2 else DEFAULT_BIND
+        bind = args[2] if len(args) > 2 else DEFAULT_HOST
         start(port, bind)
     elif cmd == "stop":   stop()
     elif cmd == "status": status()
